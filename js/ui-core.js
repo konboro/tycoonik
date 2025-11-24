@@ -1,4 +1,4 @@
-// js/ui-core.js - WERSJA KOMPLETNA Z FILTRAMI MAPY (HUD)
+// js/ui-core.js - WERSJA Z NOWOCZESNYMI FILTRAMI W PANELU
 import { state } from './state.js';
 import { config } from './config.js';
 import { map } from './state.js';
@@ -116,6 +116,8 @@ export function initMapFilters() {
             }
             updateMapFilterButtons(); 
             redrawMap(); 
+            // Jeśli panel jest otwarty, odśwież go też
+            if (state.activeTab === 'store' || state.activeTab === 'fleet') render();
         });
         
         typesContainer.appendChild(btn);
@@ -414,29 +416,56 @@ export function render() {
     const showControls = ['store', 'fleet', 'stations', 'market'].includes(state.activeTab);
     if(controls) controls.style.display = showControls ? 'block' : 'none';
 
-    // Filtry w panelu bocznym
+    // === ZMODYFIKOWANA SEKCJA FILTRÓW W PANELU (Kafelki/Buttony) ===
     if (showControls && filtersContainer) {
         filtersContainer.innerHTML = '';
-        let filterHtml = `<div id="filterRarity"><h4 class="font-semibold text-sm mb-2">Rzadkość</h4><div class="space-y-1 text-sm"><label class="flex items-center"><input type="checkbox" value="common" ${state.filters.rarities.includes('common') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Common</label><label class="flex items-center"><input type="checkbox" value="rare" ${state.filters.rarities.includes('rare') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Rare</label><label class="flex items-center"><input type="checkbox" value="epic" ${state.filters.rarities.includes('epic') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Epic</label><label class="flex items-center"><input type="checkbox" value="legendary" ${state.filters.rarities.includes('legendary') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Legendary</label></div></div><div id="filterMapView"><h4 class="font-semibold text-sm mb-2">Widok mapy</h4><div class="space-y-1 text-sm"><label class="flex items-center"><input type="radio" name="mapView" value="all" ${state.filters.mapView === 'all' ? 'checked' : ''} class="mr-2 bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Wszystkie</label><label class="flex items-center"><input type="radio" name="mapView" value="fleet" ${state.filters.mapView === 'fleet' ? 'checked' : ''} class="mr-2 bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Moja flota</label></div></div>`;
+        let filterHtml = '<div class="space-y-4">';
+
         if (state.activeTab !== 'stations') { 
-            filterHtml += `<div id="filterType"><h4 class="font-semibold text-sm mb-2">Typ</h4>
-            <div class="space-y-1 text-sm">
-            <label class="flex items-center"><input type="checkbox" value="plane" ${state.filters.types.includes('plane') ? 'checked' : ''} class="mr-2 rounded"> Samoloty</label>
-            <label class="flex items-center"><input type="checkbox" value="train" ${state.filters.types.includes('train') ? 'checked' : ''} class="mr-2 rounded"> Pociągi</label>
-            <label class="flex items-center"><input type="checkbox" value="tube" ${state.filters.types.includes('tube') ? 'checked' : ''} class="mr-2 rounded"> Metro</label>
-            <label class="flex items-center"><input type="checkbox" value="tram" ${state.filters.types.includes('tram') ? 'checked' : ''} class="mr-2 rounded"> Tramwaje</label>
-            <label class="flex items-center"><input type="checkbox" value="bus" ${state.filters.types.includes('bus') ? 'checked' : ''} class="mr-2 rounded"> Autobusy</label>
-            <label class="flex items-center"><input type="checkbox" value="bike" ${state.filters.types.includes('bike') ? 'checked' : ''} class="mr-2 rounded"> Sharing</label>
-            <label class="flex items-center"><input type="checkbox" value="scooter" ${state.filters.types.includes('scooter') ? 'checked' : ''} class="mr-2 rounded"> Skutery</label>
-            </div></div>
-            <div id="filterCountry"><h4 class="font-semibold text-sm mb-2">Kraj</h4>
-            <div class="space-y-1 text-sm">
-            <label class="flex items-center"><input type="checkbox" value="USA" ${state.filters.countries.includes('USA') ? 'checked' : ''} class="mr-2 rounded"> USA</label>
-            <label class="flex items-center"><input type="checkbox" value="Poland" ${state.filters.countries.includes('Poland') ? 'checked' : ''} class="mr-2 rounded"> Polska</label>
-            <label class="flex items-center"><input type="checkbox" value="Finland" ${state.filters.countries.includes('Finland') ? 'checked' : ''} class="mr-2 rounded"> Finlandia</label>
-            <label class="flex items-center"><input type="checkbox" value="Greece" ${state.filters.countries.includes('Greece') ? 'checked' : ''} class="mr-2 rounded"> Greece</label>
-            <label class="flex items-center"><input type="checkbox" value="UK" ${state.filters.countries.includes('UK') ? 'checked' : ''} class="mr-2 rounded"> UK</label>
-            </div></div>`; }
+            // 1. TYPY POJAZDÓW (Ikony w Gridzie)
+            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Typ Pojazdu</h4><div class="grid grid-cols-4 gap-2">';
+            const types = ['plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
+            types.forEach(t => {
+                const active = state.filters.types.includes(t);
+                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
+                filterHtml += `<button class="panel-filter-btn h-10 w-full ${activeClass}" data-filter-category="types" data-filter-value="${t}" title="${t}">${getIconHtml(t, "w-6 h-6")}</button>`;
+            });
+            filterHtml += '</div></div>';
+
+            // 2. RZADKOŚĆ (Tagi Flex)
+            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Rzadkość</h4><div class="flex flex-wrap gap-2">';
+            const rarities = [
+                { id: 'common', label: 'Common', color: 'border-gray-500 text-gray-400' },
+                { id: 'rare', label: 'Rare', color: 'border-blue-500 text-blue-400' },
+                { id: 'epic', label: 'Epic', color: 'border-purple-500 text-purple-400' },
+                { id: 'legendary', label: 'Legendary', color: 'border-amber-500 text-amber-400' }
+            ];
+            rarities.forEach(r => {
+                const active = state.filters.rarities.includes(r.id);
+                const baseClass = `px-3 py-1 text-xs font-bold border rounded-full transition-colors`;
+                // Jeśli aktywny, dajemy niebieskie tło. Jeśli nie, to przezroczyste z kolorowym borderem
+                const activeClass = active ? 'filter-btn-active border-transparent' : `bg-transparent ${r.color} hover:bg-gray-800`;
+                filterHtml += `<button class="${baseClass} ${activeClass}" data-filter-category="rarities" data-filter-value="${r.id}">${r.label}</button>`;
+            });
+            filterHtml += '</div></div>';
+
+            // 3. KRAJ (Tagi Flex)
+            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Region</h4><div class="flex flex-wrap gap-2">';
+            const countries = ['Poland', 'USA', 'Finland', 'UK', 'Greece', 'Europe'];
+            countries.forEach(c => {
+                const active = state.filters.countries.includes(c);
+                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
+                filterHtml += `<button class="px-3 py-1 text-xs font-bold rounded-md transition-colors ${activeClass}" data-filter-category="countries" data-filter-value="${c}">${c}</button>`;
+            });
+            filterHtml += '</div></div>';
+        }
+
+        // Dodatkowe opcje dla widoku stacji
+        if (state.activeTab === 'stations') {
+             filterHtml += '<div class="text-sm text-gray-400 text-center italic">Filtrowanie stacji wkrótce...</div>';
+        }
+
+        filterHtml += '</div>'; // koniec space-y-4
         filtersContainer.innerHTML = filterHtml;
     }
     

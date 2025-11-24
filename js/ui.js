@@ -3,8 +3,7 @@ import { config, lootboxConfig } from './config.js';
 import { supabase } from './supabase.js';
 import { $, fmt, showNotification, showConfirm, getVehicleRarity, getIconHtml } from './utils.js';
 import { map } from './state.js';
-// POPRAWIONY IMPORT (usunąłem 'calculateAssetValue' stąd):
-import { render, updateUI, toggleContentPanel } from './ui-core.js'; 
+import { render, updateUI, toggleContentPanel, redrawMap } from './ui-core.js'; 
 
 // ===== 1. FUNKCJE POMOCNICZE (AKCJE GRACZA) =====
 
@@ -68,9 +67,8 @@ function quickSellVehicle(key) {
         delete state.owned[key];
         state.selectedVehicleKey = null;
         
-        // FIXED: Force immediate UI update
         updateUI();
-        forceUpdateWalletWithFlash(state.wallet, true); // Green flash for income
+        forceUpdateWalletWithFlash(state.wallet, true);
         
         (async () => {
             const user = (await supabase.auth.getUser()).data.user;
@@ -81,7 +79,6 @@ function quickSellVehicle(key) {
         })();
         showNotification(`Sprzedano za ${fmt(sellPrice)} VC.`);
         render();
-        
         console.log(`💰 Vehicle sold: ${fmt(oldWallet)} → ${fmt(state.wallet)} (+${fmt(sellPrice)})`);
     });
 }
@@ -134,11 +131,9 @@ function upgradeVehicle(key) {
         ownedData.level = (ownedData.level || 1) + 1;
         state.profile.upgrades_done++;
         
-        // FIXED: Force immediate UI update
         updateUI();
-        forceUpdateWalletWithFlash(state.wallet, false); // Red flash for expense
+        forceUpdateWalletWithFlash(state.wallet, false);
         render();
-        
         console.log(`💰 Vehicle upgraded: ${fmt(oldWallet)} → ${fmt(state.wallet)} (-${fmt(cost)})`);
     } else { 
         showNotification("Brak środków!", true); 
@@ -150,7 +145,7 @@ function forceUpdateWalletWithFlash(walletAmount, isIncome = true) {
     if (walletEl) {
         const fmt = (n) => Math.round(n).toLocaleString('pl-PL');
         walletEl.textContent = fmt(walletAmount);
-        walletEl.style.color = isIncome ? '#22c55e' : '#ef4444'; // Green for income, red for expense
+        walletEl.style.color = isIncome ? '#22c55e' : '#ef4444'; 
         walletEl.style.transition = 'color 0.3s ease';
         setTimeout(() => { 
             walletEl.style.color = ''; 
@@ -218,7 +213,31 @@ export function setupEventListeners() {
     const controls = $('panel-controls');
     controls.addEventListener('click', e => { if (e.target.id === 'refreshAll') doFetch(); });
     controls.addEventListener('input', e => { if (e.target.id === 'search') render(); });
-    $('filters-container').addEventListener('change', e => { const parent = e.target.closest('div[id]'); if (!parent) return; const parentId = parent.id; if (parentId === 'filterType') state.filters.types = Array.from(parent.querySelectorAll('input:checked')).map(i => i.value); if (parentId === 'filterCountry') state.filters.countries = Array.from(parent.querySelectorAll('input:checked')).map(i => i.value); if (parentId === 'filterRarity') state.filters.rarities = Array.from(parent.querySelectorAll('input:checked')).map(i => i.value); if (parentId === 'filterMapView') state.filters.mapView = parent.querySelector('input:checked').value; render(); });
+    
+    // ===== OBSŁUGA NOWYCH FILTRÓW W PANELU =====
+    const filtersContainer = $('filters-container');
+    if (filtersContainer) {
+        filtersContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+
+            const category = btn.dataset.filterCategory;
+            const value = btn.dataset.filterValue;
+
+            if (category && value) {
+                // Logika przełączania (toggle)
+                if (state.filters[category].includes(value)) {
+                    state.filters[category] = state.filters[category].filter(item => item !== value);
+                } else {
+                    state.filters[category].push(value);
+                }
+                
+                // Odśwież UI i Mapę
+                render(); 
+                redrawMap();
+            }
+        });
+    }
 
     $('mainList').addEventListener('click', e => {
         const buyTarget = e.target.closest('[data-buy]');
