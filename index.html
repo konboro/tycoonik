@@ -51,7 +51,6 @@
 
         <button class="nav-btn group" data-nav-tab="fleet"><i class="ri-truck-line text-xl"></i><span class="nav-tooltip">Flota</span></button>
         <button class="nav-btn group" data-nav-tab="stations"><i class="ri-community-line text-xl"></i><span class="nav-tooltip">Infrastruktura</span></button>
-        <button class="nav-btn group" data-nav-tab="energy"><i class="ri-gas-station-line text-xl"></i><span class="nav-tooltip">Energia</span></button>
         <div class="w-8 h-px bg-gray-800 my-1"></div>
         
         <button class="nav-btn group" data-nav-tab="market"><i class="ri-line-chart-line text-xl"></i><span class="nav-tooltip">Giełda</span></button>
@@ -59,10 +58,12 @@
         <button class="nav-btn group" data-nav-tab="lootbox"><i class="ri-gift-2-line text-xl"></i><span class="nav-tooltip">Dostawy</span></button>
         <div class="w-8 h-px bg-gray-800 my-1"></div>
 
-        <button class="nav-btn group" data-nav-tab="stats"><i class="ri-pie-chart-2-line text-xl"></i><span class="nav-tooltip">Raporty</span></button>
         <button class="nav-btn group" data-nav-tab="achievements"><i class="ri-trophy-line text-xl"></i><span id="ach-notification-dot" class="absolute top-1 right-1 w-2 h-2 bg-[#eab308] rounded-full hidden"></span><span class="nav-tooltip">Osiągnięcia</span></button>
         
-        <div class="mt-auto pb-2">
+        <div class="mt-auto pb-2 flex flex-col gap-1">
+            <button class="nav-btn group" data-nav-tab="stats"><i class="ri-pie-chart-2-line text-xl"></i><span class="nav-tooltip">Raporty</span></button>
+            <button class="nav-btn group" data-nav-tab="energy"><i class="ri-gas-station-line text-xl"></i><span class="nav-tooltip">Energia</span></button>
+            <div class="w-8 h-px bg-gray-800 mx-auto my-1"></div>
             <button id="resetAll" class="nav-btn group text-red-900 hover:text-red-500 hover:border-red-900"><i class="ri-shut-down-line text-xl"></i><span class="nav-tooltip bg-red-600 text-white">Reset Systemu</span></button>
         </div>
     </aside>
@@ -137,7 +138,9 @@
             <div id="map-filters-types" class="absolute top-4 right-4 z-[800] flex flex-col gap-2 pointer-events-auto"></div>
 
             <div id="map-filters-ownership" class="absolute bottom-6 right-4 z-[800] flex gap-1 pointer-events-auto bg-[#121212] p-1 border border-[#333] rounded shadow-xl">
-                </div>
+                <button data-map-view="all" class="px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors bg-[#eab308] text-black border border-[#eab308]">Wszystkie</button>
+                <button data-map-view="fleet" class="px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors bg-[#121212] text-gray-400 border border-[#333] hover:text-white">Moja Flota</button>
+            </div>
 
             <aside id="content-panel" class="content-panel absolute top-0 left-0 h-full w-[420px] z-[500] flex flex-col transform -translate-x-full transition-transform duration-300">
                 <div class="bg-[#121212] p-4 border-b border-[#333] flex justify-between items-center">

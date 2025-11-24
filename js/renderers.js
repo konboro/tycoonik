@@ -16,6 +16,25 @@ export function renderSectionTitle(container, title) {
     container.appendChild(el); 
 }
 
+// Helper do Paliwa i CO2
+function getVehicleEcoSpecs(type) {
+    let fuel = 'PRĄD';
+    let co2 = '0 g/km';
+    
+    if (['plane'].includes(type)) {
+        fuel = 'JET-A1';
+        co2 = '285 g/km';
+    } else if (['bus', 'river-bus'].includes(type)) {
+        fuel = 'DIESEL';
+        co2 = type === 'bus' ? '85 g/km' : '110 g/km';
+    } else if (['bike'].includes(type)) {
+        fuel = 'MIĘŚNIE';
+        co2 = '0 g/km';
+    }
+    
+    return { fuel, co2 };
+}
+
 export function renderVehicleList(container) {
     const searchTerm = $('search').value.toLowerCase();
     let listSource = [];
@@ -53,7 +72,7 @@ export function renderVehicleList(container) {
         const ownedData = state.owned[key];
         const price = config.basePrice[v.type] || 1000;
         const rarity = getVehicleRarity(v);
-        const details = config.vehicleDetails[v.type] || { power: '-', maxSpeed: '-' };
+        const eco = getVehicleEcoSpecs(v.type);
         
         // Obliczenia ekonomiczne
         const earningsPerKm = config.baseRate[v.type] || 0;
@@ -85,8 +104,7 @@ export function renderVehicleList(container) {
                             ${isOwned ? `<div class="w-3 h-3 rounded-full ${statusDotClass}" title="Status"></div>` : ''}
                             <div class="font-bold text-white text-base group-hover:text-[#eab308] transition-colors font-header tracking-wide uppercase truncate max-w-[150px] leading-none">${vTitle}</div>
                         </div>
-                        <div class="text-xs text-gray-500 font-mono uppercase">${v.type} • ${v.country || 'GLOBAL'}</div>
-                        <div class="text-xs font-bold uppercase mt-1 text-${rarity === 'legendary' ? 'yellow' : rarity === 'epic' ? 'purple' : 'blue'}-500">${rarity}</div>
+                        <div class="text-xs text-gray-500 font-mono uppercase">${v.type} • ${v.country || 'GLOBAL'} • <span class="text-${rarity === 'legendary' ? 'yellow' : rarity === 'epic' ? 'purple' : 'blue'}-500">${rarity}</span></div>
                     </div>
                 </div>
                 <div class="text-right shrink-0">
@@ -99,12 +117,12 @@ export function renderVehicleList(container) {
             
             <div class="grid grid-cols-3 gap-px bg-[#444] border border-[#333] rounded-sm overflow-hidden mb-3 text-center">
                 <div class="bg-[#1a1a1a] p-2">
-                    <div class="text-[10px] text-gray-500 uppercase mb-1">Moc</div>
-                    <div class="text-sm text-gray-200 font-mono font-bold">${details.power}</div>
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Paliwo</div>
+                    <div class="text-sm text-gray-200 font-mono font-bold">${eco.fuel}</div>
                 </div>
                 <div class="bg-[#1a1a1a] p-2">
-                    <div class="text-[10px] text-gray-500 uppercase mb-1">V-Max</div>
-                    <div class="text-sm text-gray-200 font-mono font-bold">${details.maxSpeed}</div>
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Emisja</div>
+                    <div class="text-sm text-gray-200 font-mono font-bold">${eco.co2}</div>
                 </div>
                 
                 <div class="bg-[#1a1a1a] p-2">
@@ -143,6 +161,7 @@ export function renderVehicleList(container) {
     });
 }
 
+// ... (renderInfrastructure, renderStationDetails, renderGuildTab BEZ ZMIAN) ...
 export function renderInfrastructure(container) {
     for (const id in config.infrastructure) {
         const conf = config.infrastructure[id];
@@ -182,7 +201,6 @@ export function renderStationDetails(id, container) {
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
     
-    // Uproszczony widok szczegółów
     const earnings = state.infrastructure[type === 'train' ? 'trainStations' : 'busTerminals']?.[id]?.hourlyEarnings || 0;
     
     container.innerHTML = `
@@ -288,7 +306,7 @@ export function renderVehicleCard(key) {
     if (!baseData) { $('vehicle-card').classList.add('translate-y-[150%]'); return; }
     
     const v = { ...baseData, ...(state.vehicles[type]?.get(id) || {}) };
-    const details = config.vehicleDetails[type] || {};
+    const eco = getVehicleEcoSpecs(type);
     
     const container = document.getElementById('vehicle-card-content');
     
@@ -312,12 +330,12 @@ export function renderVehicleCard(key) {
                     
                     <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm font-mono">
                         <div class="flex justify-between border-b border-[#333] pb-1">
-                            <span class="text-gray-500">Moc</span>
-                            <span class="text-white">${details.power || '-'}</span>
+                            <span class="text-gray-500">Paliwo</span>
+                            <span class="text-white">${eco.fuel}</span>
                         </div>
                         <div class="flex justify-between border-b border-[#333] pb-1">
-                            <span class="text-gray-500">Prędkość</span>
-                            <span class="text-white">${details.maxSpeed || '-'}</span>
+                            <span class="text-gray-500">Emisja</span>
+                            <span class="text-white">${eco.co2}</span>
                         </div>
                         <div class="flex justify-between border-b border-[#333] pb-1">
                             <span class="text-gray-500">Zużycie</span>
