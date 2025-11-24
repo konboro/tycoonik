@@ -1,0 +1,401 @@
+// js/ui-core.js - WERSJA KOMPLETNA Z POPRAWKAMI LICZNIKÓW
+import { state } from './state.js';
+import { config } from './config.js';
+import { map } from './state.js';
+import { $, fmt, getProximityBonus, createIcon, getIconHtml, ICONS, getWeatherIcon } from './utils.js';
+import { calculateAssetValue } from './logic.js'; // <-- POPRAWKA: Prawidłowy import
+
+// Importujemy "Malarzy"
+import { 
+    renderVehicleList, renderInfrastructure, renderLootboxTab, renderMarket, 
+    renderRankings, renderCharts, renderAchievements, renderEnergyPrices, 
+    renderTransactionHistory, renderGuildTab, renderCompanyTab, renderFriendsTab, 
+    renderStationDetails, renderVehicleCard, renderEmptyState, renderSectionTitle
+} from './renderers.js';
+
+// ===== 1. FUNKCJE POMOCNICZE UI =====
+
+export function toggleContentPanel(forceVisible) {
+    const panel = $('content-panel');
+    if (!panel) return;
+    const isHidden = panel.classList.contains('-translate-x-full');
+    const shouldShow = typeof forceVisible === 'boolean' ? forceVisible : isHidden;
+
+    panel.classList.toggle('-translate-x-full', !shouldShow);
+    panel.classList.toggle('translate-x-0', shouldShow);
+
+    if (!shouldShow) {
+        state.activeTab = null;
+        document.querySelectorAll('.nav-item.bg-gray-800').forEach(el => el.classList.remove('bg-gray-800', 'text-white'));
+    }
+}
+
+function getCompanyInfoPopupContent() {
+    const companyName = state.profile.companyName || 'Moja Firma';
+    const vehicleCount = Object.keys(state.owned).length;
+    let buildingCount = 0;
+    Object.values(state.infrastructure).forEach(category => {
+        Object.values(category).forEach(item => { if (item.owned) buildingCount++; });
+    });
+    const companyValue = calculateAssetValue(); // Używamy importowanej funkcji
+    return `<div style="font-family: 'Inter', sans-serif;"><h3 style="margin: 0; font-size: 16px; font-weight: bold;">${companyName}</h3><ul style="list-style: none; padding: 0; margin: 8px 0 0 0; font-size: 14px;"><li style="margin-bottom: 4px;"><strong>Pojazdy:</strong> ${vehicleCount}</li><li style="margin-bottom: 4px;"><strong>Budynki:</strong> ${buildingCount}</li><li><strong>Wartość firmy:</strong> ${fmt(companyValue)} VC</li></ul></div>`;
+}
+
+export function showPlayerLocation() {
+    if ('geolocation' in navigator) {
+        navigator.geolocation.watchPosition(position => {
+            const { latitude, longitude } = position.coords;
+            state.playerLocation = { lat: latitude, lon: longitude }; 
+            
+            const playerIcon = L.divIcon({
+                className: 'player-location-icon',
+                html: `<div class="text-3xl">${state.profile.logo || '🏢'}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            if (state.playerMarker) {
+                state.playerMarker.setLatLng([latitude, longitude]);
+            } else {
+                state.playerMarker = L.marker([latitude, longitude], { icon: playerIcon }).addTo(map);
+                state.playerMarker.bindPopup(getCompanyInfoPopupContent);
+                map.setView([latitude, longitude], 13);
+            }
+
+            if (state.proximityCircle) {
+                state.proximityCircle.setLatLng([latitude, longitude]);
+            } else {
+                state.proximityCircle = L.circle([latitude, longitude], {
+                    radius: 100000, 
+                    color: 'green',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.15,
+                    weight: 1
+                }).addTo(map);
+            }
+        }, (error) => { console.warn("Nie można uzyskać lokalizacji:", error.message); }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+    } else { console.warn("Geolokalizacja nie jest wspierana."); }
+}
+
+export function updatePlayerMarkerIcon() {
+    if (state.playerMarker) {
+        const playerIcon = L.divIcon({
+            className: 'player-location-icon',
+            html: `<div class="text-3xl">${state.profile.logo || '🏢'}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32]
+        });
+        state.playerMarker.setIcon(playerIcon);
+    }
+}
+
+export function redrawMap() {
+    const visibleKeys = new Set();
+    
+    // Rysowanie pojazdów
+    Object.values(state.vehicles).forEach(vehicleMap => {
+        for (const v of vehicleMap.values()) {
+            const key = `${v.type}:${v.id}`;
+            const isOwned = !!state.owned[key];
+            if (state.filters.mapView === 'fleet' && !isOwned) continue;
+            const typeMatch = state.filters.types.includes(v.type);
+            const countryMatch = !v.country || state.filters.countries.includes(v.country);
+            let entry = state.markers.get(key);
+            if (typeMatch && countryMatch && v.lat != null && isFinite(v.lat) && v.lon != null && isFinite(v.lon)) {
+                visibleKeys.add(key);
+                //const iconHtml = `<div class="w-full h-full flex items-center justify-center transition-transform duration-500">${getIconHtml(v.type, "w-8 h-8")}</div>`;
+                const iconHtml = createVehicleMarkerHtml(v);
+
+                if (!entry) {
+                    const marker = L.marker([v.lat, v.lon], { icon: createIcon(isOwned && v.isMoving) }).addTo(map);
+                    marker.getElement().innerHTML = iconHtml;
+                    marker.on('click', () => { 
+                        const vData = state.vehicles[v.type]?.get(v.id);
+                        if (!vData) return;
+                        state.selectedVehicleKey = key;
+                        render(); 
+                    });
+                    entry = { marker, trail: null };
+                    state.markers.set(key, entry);
+                } else {
+                    entry.marker.setLatLng([v.lat, v.lon]);
+                    entry.marker.getElement().innerHTML = iconHtml;
+                    const iconEl = entry.marker.getElement();
+                    if (iconEl) {
+                        if (isOwned && v.isMoving) iconEl.classList.add('is-moving');
+                        else iconEl.classList.remove('is-moving');
+                    }
+                }
+                if (isOwned && v.history && v.history.length > 1) { const latlngs = v.history.map(p => [p.lat, p.lon]); if (entry.trail) { entry.trail.setLatLngs(latlngs); } else { entry.trail = L.polyline(latlngs, { color: 'rgba(59, 130, 246, 0.5)', weight: 3 }).addTo(map); } } else if (entry.trail) { entry.trail.remove(); entry.trail = null; }
+            }
+        }
+    });
+
+    for (const [key, entry] of state.markers.entries()) {
+        if (!visibleKeys.has(key) && !key.startsWith('station:') && !key.startsWith('guildasset:')) {
+            if(entry.marker) entry.marker.remove();
+            if(entry.trail) entry.trail.remove();
+            state.markers.delete(key);
+        }
+    }
+    
+    // Rysowanie Stacji (na warstwie 'buildingsPane')
+    for (const stationCode in config.infrastructure) {
+        const station = config.infrastructure[stationCode];
+        const key = `station:${stationCode}`;
+        if (station && !state.markers.has(key)) {
+            const marker = L.marker([station.lat, station.lon], { 
+                icon: L.divIcon({ 
+                    className: 'leaflet-marker-icon', 
+                    html: `<div class="w-16 h-16 drop-shadow-lg">${getIconHtml('station_' + station.type)}</div>`, 
+                    iconSize: [64, 64], 
+                    iconAnchor: [32, 32] 
+                }),
+                pane: 'buildingsPane', // Używamy warstwy z main.js
+                zIndexOffset: 100
+            }).addTo(map);
+            marker.bindPopup(`<b>${station.name}</b>`).on('click', () => { 
+                state.activeTab = 'stations';
+                state.selectedStationId = stationCode;
+                render();
+                toggleContentPanel(true);
+            });
+            state.markers.set(key, { marker });
+        }
+    }
+
+    // Rysowanie Aktywów Gildii
+    for (const assetKey in config.guildAssets) {
+        const asset = config.guildAssets[assetKey];
+        const key = `guildasset:${assetKey}`;
+        let ownerGuildName = null;
+        for (const guildId in state.guild.guilds) {
+            if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) {
+                ownerGuildName = state.guild.guilds[guildId].name;
+                break;
+            }
+        }
+        let popupContent = `<b>${asset.name}</b><br>${asset.realProduction}`;
+        if (ownerGuildName) popupContent += `<br><span class="text-blue-400">Właściciel: ${ownerGuildName}</span>`;
+        else popupContent += `<br><span class="text-green-400">Na sprzedaż</span>`;
+
+        if (!state.markers.has(key)) {
+             const marker = L.marker([asset.lat, asset.lon], {
+                 icon: L.divIcon({ 
+                     className: 'leaflet-marker-icon', 
+                     html: `<div class="w-16 h-16 drop-shadow-xl">${getIconHtml('asset_power-plant')}</div>`, 
+                     iconSize: [64, 64], 
+                     iconAnchor: [32, 32] 
+                 }),
+                 pane: 'buildingsPane', // Używamy warstwy z main.js
+                 zIndexOffset: 100
+            }).addTo(map);
+            marker.bindPopup(popupContent).on('click', () => { 
+                state.activeTab = 'guild';
+                render();
+                toggleContentPanel(true);
+            });
+            state.markers.set(key, { marker });
+        } else {
+            state.markers.get(key).marker.getPopup().setContent(popupContent);
+        }
+    }
+}
+
+function createVehicleMarkerHtml(vehicle, isOwned) {
+    const iconPath = ICONS[vehicle.type] || '❓';
+    
+    if (iconPath.includes('.png') || iconPath.includes('/assets/')) {
+        // PNG image - no background
+        return `
+            <div class="w-10 h-10 flex items-center justify-center">
+                <img src="${iconPath}" 
+                     class="w-8 h-8 object-contain drop-shadow-lg" 
+                     style="opacity: 0; transition: opacity 0.3s;"
+                     onload="this.style.opacity = 1;"
+                     onerror="this.parentNode.innerHTML='🛵';">
+            </div>
+        `;
+    }
+    
+    // Emoji fallback
+    return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
+}
+
+// ===== 3. GŁÓWNA AKTUALIZACJA UI (KPI) - POPRAWIONA =====
+
+export function updateUI(inM, outM) {
+    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    const setTxt = (id, val) => { const el = $(id); if (el) el.textContent = val; };
+    
+    // FIXED: Force immediate wallet update with better formatting
+    const walletEl = $('wallet');
+    if (walletEl) {
+        const formattedWallet = fmt(state.wallet);
+        walletEl.textContent = formattedWallet;
+        // Force a repaint to ensure immediate update
+        walletEl.offsetHeight; 
+        
+        // Add visual feedback for wallet changes
+        if (walletEl.dataset.lastValue && walletEl.dataset.lastValue !== formattedWallet) {
+            walletEl.style.color = '#22c55e'; // Green flash
+            setTimeout(() => { walletEl.style.color = ''; }, 500);
+        }
+        walletEl.dataset.lastValue = formattedWallet;
+    }
+    
+    set('company-name', state.profile.companyName);
+    set('level', state.profile.level);
+    set('xp', Math.round(state.profile.xp));
+    set('xpNext', 100 + (state.profile.level-1)*50);
+    const xpBar = $('xpProgressBar'); 
+    if(xpBar) xpBar.style.width = `${(state.profile.xp / (100+(state.profile.level-1)*50))*100}%`;
+    
+    set('owned-vehicles-count', Object.keys(state.owned).length);
+    const buildingCount = Object.values(state.infrastructure).reduce((sum, category) => sum + Object.values(category).filter(item => item.owned).length, 0);
+    set('owned-buildings-count', buildingCount);
+    
+    const estimatedAssets = Math.max(0, calculateAssetValue() - state.wallet); 
+    set('estimated-assets', fmt(estimatedAssets));
+    
+    // FIXED: Better VC/h calculation with proper error handling
+    const earningsHistory = state.profile.earnings_history || [];
+    
+    // Filter out invalid values and calculate properly
+    const validEarnings = earningsHistory.filter(e => 
+        typeof e === 'number' && 
+        isFinite(e) && 
+        !isNaN(e) && 
+        e !== null && 
+        e !== undefined
+    );
+    
+    let hourlyEstimate = 0;
+    if (validEarnings.length > 0) {
+        // Calculate average per minute, then multiply by 60 for hourly
+        const totalEarnings = validEarnings.reduce((sum, earning) => sum + earning, 0);
+        const avgPerMinute = totalEarnings / validEarnings.length;
+        hourlyEstimate = avgPerMinute * 60;
+    }
+    
+    // FIXED: Odometer with better formatting and error handling
+    const odometer = $('hourly-earnings-odometer');
+    if(odometer) {
+        const earnings = Math.max(0, Math.round(hourlyEstimate));
+        const formattedEarnings = earnings.toLocaleString('pl-PL').padStart(6, '0');
+        
+        odometer.innerHTML = '';
+        
+        // Only process numeric characters
+        for (const char of formattedEarnings) {
+            if (char !== ' ' && char !== '.' && char !== ',') {
+                const digitEl = document.createElement('span');
+                digitEl.className = 'odometer-digit';
+                digitEl.textContent = char;
+                odometer.appendChild(digitEl);
+            }
+        }
+        
+        const labelEl = document.createElement('span');
+        labelEl.className = 'odometer-label';
+        labelEl.textContent = 'VC/h';
+        odometer.appendChild(labelEl);
+        
+        // Debug log for earnings (only when earnings > 0)
+        if (hourlyEstimate > 0 && Math.random() < 0.1) { // Log 10% of the time to reduce spam
+            console.log(`💰 Hourly estimate: ${fmt(hourlyEstimate)} VC/h (from ${validEarnings.length} data points)`);
+            console.log(`📊 Recent earnings:`, validEarnings.slice(-5));
+        }
+    }
+
+    const hasUnclaimed = Object.values(state.achievements).some(a => a.unlocked && !a.claimed);
+    const dot = $('ach-notification-dot'); if(dot) dot.style.display = hasUnclaimed ? 'block' : 'none';
+    setTxt('company-logo', state.profile.logo || '🏢');
+    
+    const kpiPanel = $('kpi-panel');
+    if(kpiPanel) {
+        kpiPanel.classList.remove('border-blue-500', 'border-green-500', 'border-red-500', 'border-yellow-500', 'border-purple-500');
+        kpiPanel.classList.add(`border-${state.profile.color}-500`);
+    }
+}
+
+// Helper function to force immediate UI update
+export function forceUpdateWallet() {
+    const walletEl = $('wallet');
+    if (walletEl) {
+        const newValue = fmt(state.wallet);
+        walletEl.textContent = newValue;
+        walletEl.style.color = '#22c55e'; // Green flash
+        setTimeout(() => { walletEl.style.color = ''; }, 300);
+        console.log(`💰 Wallet force updated: ${newValue}`);
+    }
+}
+
+// ===== 4. GŁÓWNY RENDERER =====
+
+const panelTitles = { stations: "Infrastruktura", store: "Sklep", fleet: "Moja Flota", market: "Giełda", lootbox: "Skrzynki", achievements: "Osiągnięcia", stats: "Statystyki", friends: "Znajomi", rankings: "Ranking", energy: "Ceny Energii", guild: "Gildia", transactions: "Historia Transakcji", company: "Personalizacja Firmy" };
+
+export function render() {
+    const listContainer = $('mainList');
+    if(!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    const titleEl = $('panel-title'); if(titleEl) titleEl.textContent = panelTitles[state.activeTab] || state.activeTab;
+    
+    const controls = $('panel-controls');
+    const filtersContainer = $('filters-container');
+    const showControls = ['store', 'fleet', 'stations', 'market'].includes(state.activeTab);
+    if(controls) controls.style.display = showControls ? 'block' : 'none';
+
+    // Filtry
+    if (showControls && filtersContainer) {
+        filtersContainer.innerHTML = '';
+        let filterHtml = `<div id="filterRarity"><h4 class="font-semibold text-sm mb-2">Rzadkość</h4><div class="space-y-1 text-sm"><label class="flex items-center"><input type="checkbox" value="common" ${state.filters.rarities.includes('common') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Common</label><label class="flex items-center"><input type="checkbox" value="rare" ${state.filters.rarities.includes('rare') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Rare</label><label class="flex items-center"><input type="checkbox" value="epic" ${state.filters.rarities.includes('epic') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Epic</label><label class="flex items-center"><input type="checkbox" value="legendary" ${state.filters.rarities.includes('legendary') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Legendary</label></div></div><div id="filterMapView"><h4 class="font-semibold text-sm mb-2">Widok mapy</h4><div class="space-y-1 text-sm"><label class="flex items-center"><input type="radio" name="mapView" value="all" ${state.filters.mapView === 'all' ? 'checked' : ''} class="mr-2 bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Wszystkie</label><label class="flex items-center"><input type="radio" name="mapView" value="fleet" ${state.filters.mapView === 'fleet' ? 'checked' : ''} class="mr-2 bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Moja flota</label></div></div>`;
+        if (state.activeTab !== 'stations') { 
+            filterHtml += `<div id="filterType"><h4 class="font-semibold text-sm mb-2">Typ</h4>
+            <div class="space-y-1 text-sm">
+            <label class="flex items-center"><input type="checkbox" value="plane" ${state.filters.types.includes('plane') ? 'checked' : ''} class="mr-2 rounded"> Samoloty</label>
+            <label class="flex items-center"><input type="checkbox" value="train" ${state.filters.types.includes('train') ? 'checked' : ''} class="mr-2 rounded"> Pociągi</label>
+            <label class="flex items-center"><input type="checkbox" value="tube" ${state.filters.types.includes('tube') ? 'checked' : ''} class="mr-2 rounded"> Metro</label>
+            <label class="flex items-center"><input type="checkbox" value="tram" ${state.filters.types.includes('tram') ? 'checked' : ''} class="mr-2 rounded"> Tramwaje</label>
+            <label class="flex items-center"><input type="checkbox" value="bus" ${state.filters.types.includes('bus') ? 'checked' : ''} class="mr-2 rounded"> Autobusy</label>
+            <label class="flex items-center"><input type="checkbox" value="bike" ${state.filters.types.includes('bike') ? 'checked' : ''} class="mr-2 rounded"> Sharing</label>
+            <label class="flex items-center"><input type="checkbox" value="scooter" ${state.filters.types.includes('scooter') ? 'checked' : ''} class="mr-2 rounded"> Skutery</label>
+            </div></div>
+            <div id="filterCountry"><h4 class="font-semibold text-sm mb-2">Kraj</h4>
+            <div class="space-y-1 text-sm">
+            <label class="flex items-center"><input type="checkbox" value="USA" ${state.filters.countries.includes('USA') ? 'checked' : ''} class="mr-2 rounded"> USA</label>
+            <label class="flex items-center"><input type="checkbox" value="Poland" ${state.filters.countries.includes('Poland') ? 'checked' : ''} class="mr-2 rounded"> Polska</label>
+            <label class="flex items-center"><input type="checkbox" value="Finland" ${state.filters.countries.includes('Finland') ? 'checked' : ''} class="mr-2 rounded"> Finlandia</label>
+            <label class="flex items-center"><input type="checkbox" value="Greece" ${state.filters.countries.includes('Greece') ? 'checked' : ''} class="mr-2 rounded"> Greece</label>
+            <label class="flex items-center"><input type="checkbox" value="UK" ${state.filters.countries.includes('UK') ? 'checked' : ''} class="mr-2 rounded"> UK</label>
+            </div></div>`; }
+        filtersContainer.innerHTML = filterHtml;
+    }
+    
+    // Router widoków
+    switch (state.activeTab) { 
+        case 'stats': renderCharts(listContainer); break; 
+        case 'achievements': renderAchievements(listContainer); break; 
+        case 'lootbox': renderLootboxTab(listContainer); break; 
+        case 'stations': renderInfrastructure(listContainer); break; 
+        case 'energy': renderEnergyPrices(listContainer); break; 
+        case 'market': renderMarket(listContainer); break; 
+        case 'rankings': renderRankings(listContainer); break; 
+        case 'guild': renderGuildTab(listContainer); break; 
+        case 'friends': renderFriendsTab(listContainer); break; 
+        case 'transactions': renderTransactionHistory(listContainer); break; 
+        case 'company': renderCompanyTab(listContainer); break; 
+        case 'store': case 'fleet': renderVehicleList(listContainer); break; 
+        default: break; 
+    }
+    
+    // Pokaż/Ukryj kartę pojazdu
+    const vehicleCard = $('vehicle-card');
+    if (vehicleCard) {
+        if (state.selectedVehicleKey) { renderVehicleCard(state.selectedVehicleKey); } 
+        else { vehicleCard.classList.add('translate-y-full'); }
+    }
+    
+    redrawMap();
+}
