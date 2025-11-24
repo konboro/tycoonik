@@ -1,4 +1,4 @@
-// js/ui-core.js - WERSJA POPRAWIONA (DODANO forceUpdateWallet)
+// js/ui-core.js - WERSJA Z POPRAWIONYM FILTREM MAPY I WALLET EXPORTEM
 import { state } from './state.js';
 import { config } from './config.js';
 import { map } from './state.js';
@@ -99,7 +99,6 @@ export function initMapFilters() {
     typesContainer.innerHTML = '';
     types.forEach(type => {
         const btn = document.createElement('button');
-        // New Industrial Button Style
         btn.className = `w-10 h-10 bg-[#121212] border border-[#333] flex items-center justify-center text-xl shadow-lg transition-all hover:bg-[#222] map-type-filter`;
         btn.dataset.type = type;
         btn.title = `Pokaż/Ukryj: ${type}`;
@@ -124,23 +123,28 @@ export function initMapFilters() {
 }
 
 function updateMapFilterButtons() {
+    // Aktualizacja przycisków typów (Górny Prawy)
     document.querySelectorAll('.map-type-filter').forEach(btn => {
         const type = btn.dataset.type;
         if (state.filters.types.includes(type)) {
-            btn.classList.add('filter-btn-active'); // Definiowane w CSS
+            btn.classList.add('filter-btn-active'); 
             btn.classList.remove('opacity-50');
         } else {
             btn.classList.remove('filter-btn-active');
             btn.classList.add('opacity-50');
         }
     });
+
+    // Aktualizacja przycisków własności (Dolny Prawy) - POPRAWIONA LOGIKA
     document.querySelectorAll('[data-map-view]').forEach(btn => {
         if (btn.dataset.mapView === state.filters.mapView) {
-            btn.classList.add('text-white', 'border-b-2', 'border-[#eab308]');
-            btn.classList.remove('text-gray-400', 'border-transparent');
+            // Stan AKTYWNY: Żółte tło, Czarny tekst
+            btn.classList.remove('bg-[#121212]', 'text-gray-400', 'border-[#333]', 'hover:text-white');
+            btn.classList.add('bg-[#eab308]', 'text-black', 'border-[#eab308]');
         } else {
-            btn.classList.remove('text-white', 'border-b-2', 'border-[#eab308]');
-            btn.classList.add('text-gray-400', 'border-transparent');
+            // Stan NIEAKTYWNY: Ciemne tło, Szary tekst
+            btn.classList.remove('bg-[#eab308]', 'text-black', 'border-[#eab308]');
+            btn.classList.add('bg-[#121212]', 'text-gray-400', 'border-[#333]', 'hover:text-white');
         }
     });
 }
@@ -320,9 +324,8 @@ export function updateUI(inM, outM) {
     const buildingCount = Object.values(state.infrastructure).reduce((sum, category) => sum + Object.values(category).filter(item => item.owned).length, 0);
     set('owned-buildings-count', buildingCount);
     
-    // Wartość aktywów teraz pokazuje szacowany zysk z aktywów, lub możesz wrócić do wartości firmy
     const estimatedAssets = Math.max(0, calculateAssetValue() - state.wallet); 
-    // set('estimated-assets', fmt(estimatedAssets)); // Jeśli masz takie pole w nowym HTML
+    // set('estimated-assets', fmt(estimatedAssets)); 
     
     const earningsHistory = state.profile.earnings_history || [];
     
@@ -369,7 +372,6 @@ export function forceUpdateWallet() {
     if (walletEl) {
         const newValue = fmt(state.wallet);
         walletEl.textContent = newValue;
-        // W nowym motywie, zielony jest domyślny dla kasy, więc może "mignijmy" na biało
         const originalColor = walletEl.style.color;
         walletEl.style.color = '#ffffff'; 
         setTimeout(() => { walletEl.style.color = originalColor; }, 300);

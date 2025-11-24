@@ -44,7 +44,7 @@
         </div>
     </div>
 
-    <aside class="nav-sidebar w-16 flex flex-col items-center z-50 shrink-0">
+    <aside class="nav-sidebar w-16 flex flex-col items-center z-[600] shrink-0">
         <div class="mb-2 p-1 border border-yellow-500/20 rounded">
             <div class="w-10 h-10 bg-[#eab308] flex items-center justify-center font-bold text-black font-header text-xl">TT</div>
         </div>
@@ -60,7 +60,6 @@
         <div class="w-8 h-px bg-gray-800 my-1"></div>
 
         <button class="nav-btn group" data-nav-tab="stats"><i class="ri-pie-chart-2-line text-xl"></i><span class="nav-tooltip">Raporty</span></button>
-        <button class="nav-btn group" data-nav-tab="friends"><i class="ri-user-heart-line text-xl"></i><span class="nav-tooltip">Znajomi</span></button>
         <button class="nav-btn group" data-nav-tab="achievements"><i class="ri-trophy-line text-xl"></i><span id="ach-notification-dot" class="absolute top-1 right-1 w-2 h-2 bg-[#eab308] rounded-full hidden"></span><span class="nav-tooltip">Osiągnięcia</span></button>
         
         <div class="mt-auto pb-2">
@@ -109,6 +108,10 @@
             </div>
 
             <div class="flex items-center gap-3 w-1/3 justify-end">
+                <button class="header-social-btn group" data-nav-tab="friends" title="Znajomi">
+                    <i class="ri-user-heart-fill"></i>
+                    <span class="label">Znajomi</span>
+                </button>
                 <button class="header-social-btn group" data-nav-tab="guild" title="Gildia">
                     <i class="ri-group-fill"></i>
                     <span class="label">Gildia</span>
@@ -134,8 +137,8 @@
             <div id="map-filters-types" class="absolute top-4 right-4 z-[400] flex flex-col gap-2 pointer-events-auto"></div>
 
             <div id="map-filters-ownership" class="absolute bottom-6 right-4 z-[400] flex gap-1 pointer-events-auto bg-[#121212] p-1 border border-[#333] rounded shadow-xl">
-                <button data-map-view="all" class="px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors text-gray-400 hover:text-white view-toggle-active">Wszystkie</button>
-                <button data-map-view="fleet" class="px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors text-gray-400 hover:text-white">Moja Flota</button>
+                <button data-map-view="all" class="px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors bg-[#eab308] text-black border border-[#eab308]">Wszystkie</button>
+                <button data-map-view="fleet" class="px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors bg-[#121212] text-gray-400 border border-[#333] hover:text-white">Moja Flota</button>
             </div>
 
             <aside id="content-panel" class="content-panel absolute top-0 left-0 h-full w-[420px] z-[500] flex flex-col transform -translate-x-full transition-transform duration-300">
