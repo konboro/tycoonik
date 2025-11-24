@@ -1,0 +1,1581 @@
+// ==========================================
+    // ===== NOWE OSIĄGNIĘCIA (Z PLIKU PDF) =====
+    // ==========================================
+
+    // ===== RANKING ACHIEVEMENTS =====
+    // Wymaga: state.stats.daysAtRank1 oraz state.stats.daysInTop10
+    RANKING_FIRST_PLACE_1_DAY: {
+        id: 'RANKING_FIRST_PLACE_1_DAY',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Jednodniowy Lider",
+        description: "Utrzymaj pierwsze miejsce w rankingu przez 1 dzień.",
+        icon: '🥇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysAtRank1 || 0) >= 1,
+        progress: (state) => ({ current: (state.stats?.daysAtRank1 || 0), target: 1 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_FIRST_PLACE_3_DAYS: {
+        id: 'RANKING_FIRST_PLACE_3_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Trzydniowy Dominator",
+        description: "Utrzymaj pierwsze miejsce w rankingu przez 3 dni.",
+        icon: '🥇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysAtRank1 || 0) >= 3,
+        progress: (state) => ({ current: (state.stats?.daysAtRank1 || 0), target: 3 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_FIRST_PLACE_5_DAYS: {
+        id: 'RANKING_FIRST_PLACE_5_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Pięciodniowy Król",
+        description: "Utrzymaj pierwsze miejsce w rankingu przez 5 dni.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysAtRank1 || 0) >= 5,
+        progress: (state) => ({ current: (state.stats?.daysAtRank1 || 0), target: 5 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_FIRST_PLACE_10_DAYS: {
+        id: 'RANKING_FIRST_PLACE_10_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Dziesięciodniowy Władca",
+        description: "Utrzymaj pierwsze miejsce w rankingu przez 10 dni.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysAtRank1 || 0) >= 10,
+        progress: (state) => ({ current: (state.stats?.daysAtRank1 || 0), target: 10 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_FIRST_PLACE_15_DAYS: {
+        id: 'RANKING_FIRST_PLACE_15_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Niekwestionowany Lider",
+        description: "Utrzymaj pierwsze miejsce w rankingu przez 15 dni.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysAtRank1 || 0) >= 15,
+        progress: (state) => ({ current: (state.stats?.daysAtRank1 || 0), target: 15 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_FIRST_PLACE_20_DAYS: {
+        id: 'RANKING_FIRST_PLACE_20_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Mistrz Rankingu",
+        description: "Utrzymaj pierwsze miejsce w rankingu przez 20 dni.",
+        icon: '🏆',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysAtRank1 || 0) >= 20,
+        progress: (state) => ({ current: (state.stats?.daysAtRank1 || 0), target: 20 }),
+        hidden: false,
+        oneTime: true
+    },
+
+    // Ranking Top 10
+    RANKING_TOP10_1_DAY: {
+        id: 'RANKING_TOP10_1_DAY',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Pierwszy Krok do Elity",
+        description: "Utrzymaj się w pierwszej dziesiątce rankingu przez 1 dzień.",
+        icon: '🔟',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysInTop10 || 0) >= 1,
+        progress: (state) => ({ current: (state.stats?.daysInTop10 || 0), target: 1 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_TOP10_3_DAYS: {
+        id: 'RANKING_TOP10_3_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Stabilny Pretendent",
+        description: "Utrzymaj się w pierwszej dziesiątce rankingu przez 3 dni.",
+        icon: '🥉',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysInTop10 || 0) >= 3,
+        progress: (state) => ({ current: (state.stats?.daysInTop10 || 0), target: 3 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_TOP10_5_DAYS: {
+        id: 'RANKING_TOP10_5_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Solidny Zawodnik",
+        description: "Utrzymaj się w pierwszej dziesiątce rankingu przez 5 dni.",
+        icon: '🥈',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysInTop10 || 0) >= 5,
+        progress: (state) => ({ current: (state.stats?.daysInTop10 || 0), target: 5 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_TOP10_10_DAYS: {
+        id: 'RANKING_TOP10_10_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Czołowy Rywal",
+        description: "Utrzymaj się w pierwszej dziesiątce rankingu przez 10 dni.",
+        icon: '🥇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysInTop10 || 0) >= 10,
+        progress: (state) => ({ current: (state.stats?.daysInTop10 || 0), target: 10 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_TOP10_15_DAYS: {
+        id: 'RANKING_TOP10_15_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Stały Gracz Elity",
+        description: "Utrzymaj się w pierwszej dziesiątce rankingu przez 15 dni.",
+        icon: '🌟',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysInTop10 || 0) >= 15,
+        progress: (state) => ({ current: (state.stats?.daysInTop10 || 0), target: 15 }),
+        hidden: false,
+        oneTime: true
+    },
+    RANKING_TOP10_20_DAYS: {
+        id: 'RANKING_TOP10_20_DAYS',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Elita Rywalizacji",
+        description: "Utrzymaj się w pierwszej dziesiątce rankingu przez 20 dni.",
+        icon: '🏆',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.stats?.daysInTop10 || 0) >= 20,
+        progress: (state) => ({ current: (state.stats?.daysInTop10 || 0), target: 20 }),
+        hidden: false,
+        oneTime: true
+    },
+
+    // ===== INFRASTRUCTURE EXPANSION (COUNTS) =====
+    
+    // Ports (Zakładam state.infrastructure.ports)
+    OWN_PORTS_1: {
+        id: 'OWN_PORTS_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwszy Port",
+        description: "Posiadaj 1 port morski.",
+        icon: '⚓',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_PORTS_3: {
+        id: 'OWN_PORTS_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Rośnie Flota Morska",
+        description: "Posiadaj 3 porty morskie.",
+        icon: '⚓',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_PORTS_5: {
+        id: 'OWN_PORTS_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Morski Przedsiębiorca",
+        description: "Posiadaj 5 portów morskich.",
+        icon: '🚢',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_PORTS_10: {
+        id: 'OWN_PORTS_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Operacje Oceaniczne",
+        description: "Posiadaj 10 portów morskich.",
+        icon: '🚢',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_PORTS_15: {
+        id: 'OWN_PORTS_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Regionalny Armator",
+        description: "Posiadaj 15 portów morskich.",
+        icon: '🌊',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_PORTS_20: {
+        id: 'OWN_PORTS_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Morski Imperator",
+        description: "Posiadaj 20 portów morskich.",
+        icon: '🔱',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.ports || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // Airports (Zakładam state.infrastructure.airports)
+    OWN_AIRPORTS_1: {
+        id: 'OWN_AIRPORTS_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwsze Lotnisko",
+        description: "Posiadaj 1 lotnisko.",
+        icon: '🛩️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_AIRPORTS_3: {
+        id: 'OWN_AIRPORTS_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Nad Ziemią",
+        description: "Posiadaj 3 lotniska.",
+        icon: '✈️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_AIRPORTS_5: {
+        id: 'OWN_AIRPORTS_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Władca Przestworzy",
+        description: "Posiadaj 5 lotnisk.",
+        icon: '🛫',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_AIRPORTS_10: {
+        id: 'OWN_AIRPORTS_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Międzynarodowy Portfel",
+        description: "Posiadaj 10 lotnisk.",
+        icon: '🗺️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_AIRPORTS_15: {
+        id: 'OWN_AIRPORTS_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Lotniczy Gigant",
+        description: "Posiadaj 15 lotnisk.",
+        icon: '🏢',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_AIRPORTS_20: {
+        id: 'OWN_AIRPORTS_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Dominacja w Powietrzu",
+        description: "Posiadaj 20 lotnisk.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.airports || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // Metro (Zakładam state.infrastructure.tubeStations)
+    OWN_METRO_1: {
+        id: 'OWN_METRO_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwsza Stacja Metra",
+        description: "Posiadaj 1 stację metra.",
+        icon: '🚇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_METRO_3: {
+        id: 'OWN_METRO_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Rozwój Podziemi",
+        description: "Posiadaj 3 stacje metra.",
+        icon: '🚇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_METRO_5: {
+        id: 'OWN_METRO_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Mała Sieć Podziemna",
+        description: "Posiadaj 5 stacji metra.",
+        icon: '🚇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_METRO_10: {
+        id: 'OWN_METRO_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Podziemny Operator",
+        description: "Posiadaj 10 stacji metra.",
+        icon: '🚇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_METRO_15: {
+        id: 'OWN_METRO_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Metro Metropolii",
+        description: "Posiadaj 15 stacji metra.",
+        icon: '🚇',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_METRO_20: {
+        id: 'OWN_METRO_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Podziemny Monarch",
+        description: "Posiadaj 20 stacji metra.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tubeStations || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // Tramwaje (Zakładam state.infrastructure.tramStops)
+    OWN_TRAM_1: {
+        id: 'OWN_TRAM_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwszy Przystanek Tramwajowy",
+        description: "Posiadaj 1 przystanek tramwajowy.",
+        icon: '🚋',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_TRAM_3: {
+        id: 'OWN_TRAM_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Tramwajowe Podstawy",
+        description: "Posiadaj 3 przystanki tramwajowe.",
+        icon: '🚋',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_TRAM_5: {
+        id: 'OWN_TRAM_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Miejska Sieć",
+        description: "Posiadaj 5 przystanków tramwajowych.",
+        icon: '🚋',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_TRAM_10: {
+        id: 'OWN_TRAM_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Mistrz Tramwajów",
+        description: "Posiadaj 10 przystanków tramwajowych.",
+        icon: '🚋',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_TRAM_15: {
+        id: 'OWN_TRAM_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Tramwajowy Operator",
+        description: "Posiadaj 15 przystanków tramwajowych.",
+        icon: '🚋',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_TRAM_20: {
+        id: 'OWN_TRAM_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Tramwajowy Monarch",
+        description: "Posiadaj 20 przystanków tramwajowych.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.tramStops || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // Autobusy (Przystanki) - Zakładam state.infrastructure.busStops
+    OWN_BUS_STOP_1: {
+        id: 'OWN_BUS_STOP_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwszy Przystanek Autobusowy",
+        description: "Posiadaj 1 przystanek autobusowy.",
+        icon: '🚏',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_STOP_3: {
+        id: 'OWN_BUS_STOP_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Linia Lokalna",
+        description: "Posiadaj 3 przystanki autobusowe.",
+        icon: '🚏',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_STOP_5: {
+        id: 'OWN_BUS_STOP_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Sieć Autobusowa",
+        description: "Posiadaj 5 przystanków autobusowych.",
+        icon: '🚏',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_STOP_10: {
+        id: 'OWN_BUS_STOP_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pan Autobusów",
+        description: "Posiadaj 10 przystanków autobusowych.",
+        icon: '🚌',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_STOP_15: {
+        id: 'OWN_BUS_STOP_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Operator Autobusowy",
+        description: "Posiadaj 15 przystanków autobusowych.",
+        icon: '🚌',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_STOP_20: {
+        id: 'OWN_BUS_STOP_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Autobusowy Imperator",
+        description: "Posiadaj 20 przystanków autobusowych.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busStops || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // Kolej (Zakładam state.infrastructure.trainStations)
+    OWN_RAILWAY_1: {
+        id: 'OWN_RAILWAY_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwszy Dworzec Kolejowy",
+        description: "Posiadaj 1 dworzec kolejowy.",
+        icon: '🚉',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_RAILWAY_3: {
+        id: 'OWN_RAILWAY_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Kolejowy Debiutant",
+        description: "Posiadaj 3 dworce kolejowe.",
+        icon: '🚂',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_RAILWAY_5: {
+        id: 'OWN_RAILWAY_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Regionalny Operator Kolei",
+        description: "Posiadaj 5 dworców kolejowych.",
+        icon: '🚂',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_RAILWAY_10: {
+        id: 'OWN_RAILWAY_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Kolejowy Magnat",
+        description: "Posiadaj 10 dworców kolejowych.",
+        icon: '🚄',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_RAILWAY_15: {
+        id: 'OWN_RAILWAY_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Kolejowy Władca",
+        description: "Posiadaj 15 dworców kolejowych.",
+        icon: '🚄',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_RAILWAY_20: {
+        id: 'OWN_RAILWAY_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Król Torów",
+        description: "Posiadaj 20 dworców kolejowych.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.trainStations || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // Dworce Autobusowe (Zakładam state.infrastructure.busTerminals)
+    OWN_BUS_TERMINAL_1: {
+        id: 'OWN_BUS_TERMINAL_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwszy Dworzec Autobusowy",
+        description: "Posiadaj 1 dworzec autobusowy.",
+        icon: '🏢',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length >= 1,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_TERMINAL_3: {
+        id: 'OWN_BUS_TERMINAL_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Mała Sieć Autobusowa",
+        description: "Posiadaj 3 dworce autobusowe.",
+        icon: '🏢',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length >= 3,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_TERMINAL_5: {
+        id: 'OWN_BUS_TERMINAL_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Operator Międzycity",
+        description: "Posiadaj 5 dworców autobusowych.",
+        icon: '🚌',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length >= 5,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_TERMINAL_10: {
+        id: 'OWN_BUS_TERMINAL_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Mistrz Komunikacji",
+        description: "Posiadaj 10 dworców autobusowych.",
+        icon: '🌎',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length >= 10,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_TERMINAL_15: {
+        id: 'OWN_BUS_TERMINAL_15',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Autobusowy Monarch",
+        description: "Posiadaj 15 dworców autobusowych.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length >= 15,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    OWN_BUS_TERMINAL_20: {
+        id: 'OWN_BUS_TERMINAL_20',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Władca Komunikacji",
+        description: "Posiadaj 20 dworców autobusowych.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length >= 20,
+        progress: (state) => ({ current: Object.values(state.infrastructure.busTerminals || {}).filter(s => s.owned).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // ===== INFRASTRUCTURE EXPANSION (COUNTRIES) =====
+    
+    INFRA_COUNTRIES_1: {
+        id: 'INFRA_COUNTRIES_1',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Pierwszy Kraj",
+        description: "Posiadaj infrastrukturę w 1 kraju.",
+        icon: '🌍',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return countries.size >= 1;
+        },
+        progress: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return { current: countries.size, target: 1 };
+        },
+        hidden: false, oneTime: true
+    },
+    INFRA_COUNTRIES_3: {
+        id: 'INFRA_COUNTRIES_3',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Regionalna Ekspansja",
+        description: "Posiadaj infrastrukturę w 3 krajach.",
+        icon: '🌍',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return countries.size >= 3;
+        },
+        progress: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return { current: countries.size, target: 3 };
+        },
+        hidden: false, oneTime: true
+    },
+    INFRA_COUNTRIES_5: {
+        id: 'INFRA_COUNTRIES_5',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Europejski Inwestor",
+        description: "Posiadaj infrastrukturę w 5 krajach.",
+        icon: '🇪🇺',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return countries.size >= 5;
+        },
+        progress: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return { current: countries.size, target: 5 };
+        },
+        hidden: false, oneTime: true
+    },
+    INFRA_COUNTRIES_10: {
+        id: 'INFRA_COUNTRIES_10',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Kontynentalny Gracz",
+        description: "Posiadaj infrastrukturę w 10 krajach.",
+        icon: '🗺️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return countries.size >= 10;
+        },
+        progress: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return { current: countries.size, target: 10 };
+        },
+        hidden: false, oneTime: true
+    },
+
+    // Specific Countries
+    INFRA_PL: {
+        id: 'INFRA_PL',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Polski Początek",
+        description: "Kup swoją pierwszą infrastrukturę w Polsce.",
+        icon: '🇵🇱',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'PL')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'PL')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_DE: {
+        id: 'INFRA_DE',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Niemiecka Ekspansja",
+        description: "Kup swoją pierwszą infrastrukturę w Niemczech.",
+        icon: '🇩🇪',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'DE')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'DE')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_FR: {
+        id: 'INFRA_FR',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Francuski Debiut",
+        description: "Kup swoją pierwszą infrastrukturę we Francji.",
+        icon: '🇫🇷',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'FR')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'FR')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_IT: {
+        id: 'INFRA_IT',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Włoskie Wejście",
+        description: "Kup swoją pierwszą infrastrukturę we Włoszech.",
+        icon: '🇮🇹',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'IT')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'IT')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_ES: {
+        id: 'INFRA_ES',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Hiszpańska Inicjatywa",
+        description: "Kup swoją pierwszą infrastrukturę w Hiszpanii.",
+        icon: '🇪🇸',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'ES')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'ES')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_UK: {
+        id: 'INFRA_UK',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Brytyjski Oddział",
+        description: "Kup swoją pierwszą infrastrukturę w Wielkiej Brytanii.",
+        icon: '🇬🇧',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'UK')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'UK')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_NL: {
+        id: 'INFRA_NL',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Holenderski Ruch",
+        description: "Kup swoją pierwszą infrastrukturę w Holandii.",
+        icon: '🇳🇱',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'NL')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'NL')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_BE: {
+        id: 'INFRA_BE',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Belgijski Kierunek",
+        description: "Kup swoją pierwszą infrastrukturę w Belgii.",
+        icon: '🇧🇪',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'BE')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'BE')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_CZ: {
+        id: 'INFRA_CZ',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Czeska Ekspansja",
+        description: "Kup swoją pierwszą infrastrukturę w Czechach.",
+        icon: '🇨🇿',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'CZ')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'CZ')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_SK: {
+        id: 'INFRA_SK',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Słowacki Start",
+        description: "Kup swoją pierwszą infrastrukturę na Słowacji.",
+        icon: '🇸🇰',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'SK')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'SK')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_AT: {
+        id: 'INFRA_AT',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Austriacka Sieć",
+        description: "Kup swoją pierwszą infrastrukturę w Austrii.",
+        icon: '🇦🇹',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'AT')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'AT')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_SE: {
+        id: 'INFRA_SE',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Szwedzkie Połączenie",
+        description: "Kup swoją pierwszą infrastrukturę w Szwecji.",
+        icon: '🇸🇪',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'SE')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'SE')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_DK: {
+        id: 'INFRA_DK',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Duńska Placówka",
+        description: "Kup swoją pierwszą infrastrukturę w Danii.",
+        icon: '🇩🇰',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'DK')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'DK')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    INFRA_NO: {
+        id: 'INFRA_NO',
+        category: ACHIEVEMENT_CATEGORIES.INFRASTRUCTURE,
+        title: "Norweska Ekspansja",
+        description: "Kup swoją pierwszą infrastrukturę w Norwegii.",
+        icon: '🇳🇴',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'NO')),
+        progress: (state) => ({ current: Object.values(state.infrastructure).some(cat => Object.values(cat).some(i => i.owned && i.country === 'NO')) ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+
+    // ===== OPERATIONS (SERVICES, UPGRADES, KM) =====
+
+    // Services
+    SERVICE_20: {
+        id: 'SERVICE_20',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Pierwsze Kroki Serwisowe",
+        description: "Wykonaj 20 serwisów pojazdów.",
+        icon: '🔧',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.services_done >= 20,
+        progress: (state) => ({ current: state.profile.services_done, target: 20 }),
+        hidden: false, oneTime: true
+    },
+    SERVICE_50: {
+        id: 'SERVICE_50',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Rutynowy Mechanik",
+        description: "Wykonaj 50 serwisów pojazdów.",
+        icon: '🔧',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.services_done >= 50,
+        progress: (state) => ({ current: state.profile.services_done, target: 50 }),
+        hidden: false, oneTime: true
+    },
+    SERVICE_100: {
+        id: 'SERVICE_100',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Doświadczony Technik",
+        description: "Wykonaj 100 serwisów pojazdów.",
+        icon: '🛠️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.services_done >= 100,
+        progress: (state) => ({ current: state.profile.services_done, target: 100 }),
+        hidden: false, oneTime: true
+    },
+    SERVICE_200: {
+        id: 'SERVICE_200',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Specjalista Serwisowy",
+        description: "Wykonaj 200 serwisów pojazdów.",
+        icon: '⚙️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.services_done >= 200,
+        progress: (state) => ({ current: state.profile.services_done, target: 200 }),
+        hidden: false, oneTime: true
+    },
+
+    // Upgrades
+    UPGRADES_20: {
+        id: 'UPGRADES_20',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Pierwsze Modyfikacje",
+        description: "Ulepsz 20 pojazdów.",
+        icon: '⬆️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.upgrades_done >= 20,
+        progress: (state) => ({ current: state.profile.upgrades_done, target: 20 }),
+        hidden: false, oneTime: true
+    },
+    UPGRADES_50: {
+        id: 'UPGRADES_50',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Usprawniacz Floty",
+        description: "Ulepsz 50 pojazdów.",
+        icon: '⬆️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.upgrades_done >= 50,
+        progress: (state) => ({ current: state.profile.upgrades_done, target: 50 }),
+        hidden: false, oneTime: true
+    },
+    UPGRADES_100: {
+        id: 'UPGRADES_100',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Inżynier Modernizacji",
+        description: "Ulepsz 100 pojazdów.",
+        icon: '🚀',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.upgrades_done >= 100,
+        progress: (state) => ({ current: state.profile.upgrades_done, target: 100 }),
+        hidden: false, oneTime: true
+    },
+    UPGRADES_200: {
+        id: 'UPGRADES_200',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Architekt Ulepszeń",
+        description: "Ulepsz 200 pojazdów.",
+        icon: '🚀',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.upgrades_done >= 200,
+        progress: (state) => ({ current: state.profile.upgrades_done, target: 200 }),
+        hidden: false, oneTime: true
+    },
+    UPGRADES_300: {
+        id: 'UPGRADES_300',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Flotowy Wizjoner",
+        description: "Ulepsz 300 pojazdów.",
+        icon: '✨',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.upgrades_done >= 300,
+        progress: (state) => ({ current: state.profile.upgrades_done, target: 300 }),
+        hidden: false, oneTime: true
+    },
+    UPGRADES_500: {
+        id: 'UPGRADES_500',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Mistrz Modernizacji",
+        description: "Ulepsz 500 pojazdów.",
+        icon: '🏆',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.upgrades_done >= 500,
+        progress: (state) => ({ current: state.profile.upgrades_done, target: 500 }),
+        hidden: false, oneTime: true
+    },
+
+    // Kilometry
+    KM_1000: {
+        id: 'KM_1000',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Pierwszy Tysiąc",
+        description: "Przejedź 1 000 km.",
+        icon: '🛣️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.km_total >= 1000,
+        progress: (state) => ({ current: state.profile.km_total, target: 1000 }),
+        hidden: false, oneTime: true
+    },
+    KM_10000: {
+        id: 'KM_10000',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Dziesięć Tysięcy",
+        description: "Przejedź 10 000 km.",
+        icon: '🛣️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.km_total >= 10000,
+        progress: (state) => ({ current: state.profile.km_total, target: 10000 }),
+        hidden: false, oneTime: true
+    },
+    KM_50000: {
+        id: 'KM_50000',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Pięćdziesiąt Tysięcy",
+        description: "Przejedź 50 000 km.",
+        icon: '🌍',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.km_total >= 50000,
+        progress: (state) => ({ current: state.profile.km_total, target: 50000 }),
+        hidden: false, oneTime: true
+    },
+    KM_100000: {
+        id: 'KM_100000',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Sto Tysięcy w Trasie",
+        description: "Przejedź 100 000 km.",
+        icon: '🌍',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.km_total >= 100000,
+        progress: (state) => ({ current: state.profile.km_total, target: 100000 }),
+        hidden: false, oneTime: true
+    },
+    KM_200000: {
+        id: 'KM_200000',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Dwieście Tysięcy",
+        description: "Przejedź 200 000 km.",
+        icon: '🪐',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.km_total >= 200000,
+        progress: (state) => ({ current: state.profile.km_total, target: 200000 }),
+        hidden: false, oneTime: true
+    },
+    KM_500000: {
+        id: 'KM_500000',
+        category: ACHIEVEMENT_CATEGORIES.OPERATIONS,
+        title: "Pół Miliona Kilometrów",
+        description: "Przejedź 500 000 km.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.km_total >= 500000,
+        progress: (state) => ({ current: state.profile.km_total, target: 500000 }),
+        hidden: false, oneTime: true
+    },
+
+    // ===== EARNINGS (EXTENDED) =====
+    EARN_10K: {
+        id: 'EARN_10K',
+        category: ACHIEVEMENT_CATEGORIES.EARNINGS,
+        title: "Pierwszy Zarobek",
+        description: "Zarób 10 000 VC.",
+        icon: '💰',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.total_earned >= 10000,
+        progress: (state) => ({ current: state.profile.total_earned, target: 10000 }),
+        hidden: false, oneTime: true
+    },
+    EARN_50K: {
+        id: 'EARN_50K',
+        category: ACHIEVEMENT_CATEGORIES.EARNINGS,
+        title: "Rośnie Kapitał",
+        description: "Zarób 50 000 VC.",
+        icon: '💰',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.total_earned >= 50000,
+        progress: (state) => ({ current: state.profile.total_earned, target: 50000 }),
+        hidden: false, oneTime: true
+    },
+    EARN_250K: {
+        id: 'EARN_250K',
+        category: ACHIEVEMENT_CATEGORIES.EARNINGS,
+        title: "Ćwierć Miliona",
+        description: "Zarób 250 000 VC.",
+        icon: '💎',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.total_earned >= 250000,
+        progress: (state) => ({ current: state.profile.total_earned, target: 250000 }),
+        hidden: false, oneTime: true
+    },
+    EARN_500K: {
+        id: 'EARN_500K',
+        category: ACHIEVEMENT_CATEGORIES.EARNINGS,
+        title: "Pół Miliona",
+        description: "Zarób 500 000 VC.",
+        icon: '💎',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.total_earned >= 500000,
+        progress: (state) => ({ current: state.profile.total_earned, target: 500000 }),
+        hidden: false, oneTime: true
+    },
+    EARN_1M: {
+        id: 'EARN_1M', // Uwaga: może duplikować istniejące FIRST_MILLION
+        category: ACHIEVEMENT_CATEGORIES.EARNINGS,
+        title: "Milioner",
+        description: "Zarób 1 000 000 VC.",
+        icon: '💎',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.total_earned >= 1000000,
+        progress: (state) => ({ current: state.profile.total_earned, target: 1000000 }),
+        hidden: false, oneTime: true
+    },
+
+    // ===== SOCIAL (INVITES) =====
+    // Wymaga tablicy zaproszonych znajomych: state.profile.invited_friends
+    SOCIAL_INVITE_1: {
+        id: 'SOCIAL_INVITE_1',
+        category: ACHIEVEMENT_CATEGORIES.SOCIAL,
+        title: "Pierwsze Zaproszenie",
+        description: "Zaproś 1 znajomego do gry.",
+        icon: '📩',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.invited_friends || []).length >= 1,
+        progress: (state) => ({ current: (state.profile.invited_friends || []).length, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    SOCIAL_INVITE_3: {
+        id: 'SOCIAL_INVITE_3',
+        category: ACHIEVEMENT_CATEGORIES.SOCIAL,
+        title: "Rozszerzanie Kręgu",
+        description: "Zaproś 3 znajomych do gry.",
+        icon: '📧',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.invited_friends || []).length >= 3,
+        progress: (state) => ({ current: (state.profile.invited_friends || []).length, target: 3 }),
+        hidden: false, oneTime: true
+    },
+    SOCIAL_INVITE_5: {
+        id: 'SOCIAL_INVITE_5',
+        category: ACHIEVEMENT_CATEGORIES.SOCIAL,
+        title: "Mała Społeczność",
+        description: "Zaproś 5 znajomych do gry.",
+        icon: '👥',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.invited_friends || []).length >= 5,
+        progress: (state) => ({ current: (state.profile.invited_friends || []).length, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    SOCIAL_INVITE_10: {
+        id: 'SOCIAL_INVITE_10',
+        category: ACHIEVEMENT_CATEGORIES.SOCIAL,
+        title: "Budowniczy Społeczności",
+        description: "Zaproś 10 znajomych do gry.",
+        icon: '🏙️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.invited_friends || []).length >= 10,
+        progress: (state) => ({ current: (state.profile.invited_friends || []).length, target: 10 }),
+        hidden: false, oneTime: true
+    },
+    SOCIAL_INVITE_15: {
+        id: 'SOCIAL_INVITE_15',
+        category: ACHIEVEMENT_CATEGORIES.SOCIAL,
+        title: "Społeczny Entuzjasta",
+        description: "Zaproś 15 znajomych do gry.",
+        icon: '🤝',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.invited_friends || []).length >= 15,
+        progress: (state) => ({ current: (state.profile.invited_friends || []).length, target: 15 }),
+        hidden: false, oneTime: true
+    },
+    SOCIAL_INVITE_20: {
+        id: 'SOCIAL_INVITE_20',
+        category: ACHIEVEMENT_CATEGORIES.SOCIAL,
+        title: "Społecznościowy Lider",
+        description: "Zaproś 20 znajomych do gry.",
+        icon: '👑',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.invited_friends || []).length >= 20,
+        progress: (state) => ({ current: (state.profile.invited_friends || []).length, target: 20 }),
+        hidden: false, oneTime: true
+    },
+
+    // ===== CRATES (OPENING) =====
+    CRATES_OPEN_1: {
+        id: 'CRATES_OPEN_1',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Pierwsza Skrzynka",
+        description: "Otwórz 1 skrzynkę.",
+        icon: '📦',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.lootboxes_opened || 0) >= 1,
+        progress: (state) => ({ current: (state.profile.lootboxes_opened || 0), target: 1 }),
+        hidden: false, oneTime: true
+    },
+    CRATES_OPEN_3: {
+        id: 'CRATES_OPEN_3',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Łowca Skrzynek",
+        description: "Otwórz 3 skrzynki.",
+        icon: '🎁',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.lootboxes_opened || 0) >= 3,
+        progress: (state) => ({ current: (state.profile.lootboxes_opened || 0), target: 3 }),
+        hidden: false, oneTime: true
+    },
+    CRATES_OPEN_ALL: {
+        id: 'CRATES_OPEN_ALL',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Kolekcjoner Skarbów",
+        description: "Otwórz wszystkie 7 dostępnych typów skrzynek.",
+        icon: '💎',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => (state.profile.opened_lootbox_types || []).length >= 7,
+        progress: (state) => ({ current: (state.profile.opened_lootbox_types || []).length, target: 7 }),
+        hidden: false, oneTime: true
+    },
+    
+    // ===== COMPLEX SPECIAL ACHIEVEMENTS =====
+    
+    OWN_ALL_INFRA_TYPES: {
+        id: 'OWN_ALL_INFRA_TYPES',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Mistrz Infrastruktury",
+        description: "Posiadaj po jednym z każdego rodzaju infrastruktury.",
+        icon: '🏗️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            // Lista kategorii infrastruktury do sprawdzenia
+            const types = ['ports', 'airports', 'tubeStations', 'tramStops', 'busStops', 'trainStations', 'busTerminals'];
+            return types.every(type => 
+                Object.values(state.infrastructure[type] || {}).some(i => i.owned)
+            );
+        },
+        progress: (state) => {
+             const types = ['ports', 'airports', 'tubeStations', 'tramStops', 'busStops', 'trainStations', 'busTerminals'];
+             const owned = types.filter(type => 
+                Object.values(state.infrastructure[type] || {}).some(i => i.owned)
+             ).length;
+            return { current: owned, target: types.length };
+        },
+        hidden: false, oneTime: true
+    },
+    GLOBAL_EXPANSION: {
+        id: 'GLOBAL_EXPANSION',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Globalna Ekspansja",
+        description: "Posiadaj infrastrukturę w 10 różnych krajach.",
+        icon: '🌍',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return countries.size >= 10;
+        },
+        progress: (state) => {
+             const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return { current: countries.size, target: 10 };
+        },
+        hidden: false, oneTime: true
+    },
+    CITY_TRANSPORT_KING: {
+        id: 'CITY_TRANSPORT_KING',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Król Komunikacji Miejskiej",
+        description: "Posiadaj przystanki: autobusowe, tramwajowe oraz przystanki metra.",
+        icon: '🏙️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const hasBus = Object.values(state.infrastructure.busStops || {}).some(i => i.owned);
+            const hasTram = Object.values(state.infrastructure.tramStops || {}).some(i => i.owned);
+            const hasMetro = Object.values(state.infrastructure.tubeStations || {}).some(i => i.owned);
+            return hasBus && hasTram && hasMetro;
+        },
+        progress: (state) => ({ current: 0, target: 1 }), // Uproszczony progress
+        hidden: false, oneTime: true
+    },
+    GLOBAL_TRANSPORT_NETWORK: {
+        id: 'GLOBAL_TRANSPORT_NETWORK',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Globalna Sieć Transportowa",
+        description: "Posiadaj port, lotnisko, stację metra i dworzec kolejowy jednocześnie.",
+        icon: '🌐',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const hasPort = Object.values(state.infrastructure.ports || {}).some(i => i.owned);
+            const hasAirport = Object.values(state.infrastructure.airports || {}).some(i => i.owned);
+            const hasMetro = Object.values(state.infrastructure.tubeStations || {}).some(i => i.owned);
+            const hasTrain = Object.values(state.infrastructure.trainStations || {}).some(i => i.owned);
+            return hasPort && hasAirport && hasMetro && hasTrain;
+        },
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    OPERATIONS_ALL: {
+        id: 'OPERATIONS_ALL',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Operacyjny Perfekcjonista",
+        description: "Wykonaj serwis, ulepszenie oraz przejedź trasę w ciągu jednej sesji.",
+        icon: '⏱️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.session?.performedService && state.session?.performedUpgrade && state.session?.completedRoute,
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    ECO_MASTER: {
+        id: 'ECO_MASTER',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Mistrz Ekologii",
+        description: "Posiadaj przynajmniej 10 pojazdów elektrycznych oraz 5 stacji ładowania.",
+        icon: '⚡',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+             const evCount = Object.values(state.owned).filter(v => v.fuelType === 'electric').length;
+             // Zakładam istnienie chargingStations w infrastrukturze
+             const stationCount = Object.values(state.infrastructure.chargingStations || {}).filter(s => s.owned).length;
+             return evCount >= 10 && stationCount >= 5;
+        },
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    BUSINESS_TYCOON: {
+        id: 'BUSINESS_TYCOON',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Biznesowy Magnat",
+        description: "Posiadaj 100 pojazdów oraz infrastrukturę w minimum 5 krajach.",
+        icon: '💼',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const vehicles = Object.keys(state.owned).length >= 100;
+            const countries = new Set();
+            Object.values(state.infrastructure).forEach(cat => {
+                Object.values(cat).forEach(item => {
+                    if (item.owned && item.country) countries.add(item.country);
+                });
+            });
+            return vehicles && countries.size >= 5;
+        },
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    REGIONAL_COLLECTION: {
+        id: 'REGIONAL_COLLECTION',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Regionalny Kolekcjoner",
+        description: "Posiadaj wszystkie rodzaje infrastruktury w jednym kraju.",
+        icon: '📍',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            // To jest skomplikowane sprawdzenie - szuka kraju, który ma 'owned' we wszystkich kategoriach
+            // Wymaga zaawansowanej logiki zależnej od struktury danych
+            return false; // Placeholder
+        },
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    MULTIBUSINESS_5: {
+        id: 'MULTIBUSINESS_5',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Transportowy Multibiznes",
+        description: "Zarządzaj jednocześnie 5 różnymi rodzajami transportu.",
+        icon: '🏗️',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+             const types = new Set(Object.values(state.owned).map(v => v.type));
+             return types.size >= 5;
+        },
+        progress: (state) => ({ current: new Set(Object.values(state.owned).map(v => v.type)).size, target: 5 }),
+        hidden: false, oneTime: true
+    },
+    QUICK_START_3_COUNTRIES: {
+        id: 'QUICK_START_3_COUNTRIES',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Szybki Start",
+        description: "Kup infrastrukturę w trzech różnych krajach w ciągu 24 godzin.",
+        icon: '⚡',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            // Wymaga logiki śledzenia czasu zakupu (timestamps)
+            return false; // Placeholder
+        },
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    CRATE_ELITE: {
+        id: 'CRATE_ELITE',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Elitarny Kolekcjoner",
+        description: "Odblokuj wszystkie osiągnięcia związane ze skrzynkami.",
+        icon: '📦',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => {
+            const crateAchieves = ['CRATES_OPEN_1', 'CRATES_OPEN_3', 'CRATES_OPEN_ALL'];
+            return crateAchieves.every(id => state.achievements[id]?.unlocked);
+        },
+        progress: (state) => ({ current: 0, target: 1 }),
+        hidden: false, oneTime: true
+    },
+    ACHIEVE_50: {
+        id: 'ACHIEVE_50',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Złota Liga",
+        description: "Odblokuj 50 osiągnięć w grze.",
+        icon: '🏆',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.achievements).filter(a => a.unlocked).length >= 50,
+        progress: (state) => ({ current: Object.values(state.achievements).filter(a => a.unlocked).length, target: 50 }),
+        hidden: false, oneTime: true
+    },
+    ACHIEVE_100: {
+        id: 'ACHIEVE_100',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Platynowa Liga",
+        description: "Odblokuj 100 osiągnięć w grze.",
+        icon: '💎',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => Object.values(state.achievements).filter(a => a.unlocked).length >= 100,
+        progress: (state) => ({ current: Object.values(state.achievements).filter(a => a.unlocked).length, target: 100 }),
+        hidden: false, oneTime: true
+    },
+    KNOWLEDGE_MASTER: {
+        id: 'KNOWLEDGE_MASTER',
+        category: ACHIEVEMENT_CATEGORIES.SPECIAL,
+        title: "Mistrz Wiedzy",
+        description: "Zapoznaj się ze wszystkimi poradnikami i informacjami w grze.",
+        icon: '📚',
+        reward: { vc: 25000, xp: 1000 },
+        rewardType: REWARD_TYPES.MIXED,
+        check: (state) => state.profile.tutorials_read_all === true, // Hipotetyczna flaga
+        progress: (state) => ({ current: state.profile.tutorials_read_all ? 1 : 0, target: 1 }),
+        hidden: false, oneTime: true
+    }
