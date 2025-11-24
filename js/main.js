@@ -1,6 +1,6 @@
+// js/main.js
 import { state, map } from './state.js';
 import { $ } from './utils.js';
-//import { fetchPlanes, fetchBUS, fetchTUBE, fetchFI, fetchEnergyPrices, fetchGlobalTakenVehicles, updateVehiclesWithWeather } from './api.js';
 
 import { fetchAllVehicles, fetchEnergyPrices, fetchGlobalTakenVehicles, forceRefreshVehicles, autoRefreshIfNeeded, getApiStatus } from './api-server.js';
 import { updateVehiclesWithWeather } from './api.js';
@@ -19,7 +19,8 @@ import {
     updateUI, 
     showPlayerLocation, 
     redrawMap,
-    forceUpdateWallet
+    forceUpdateWallet,
+    initMapFilters // <--- DODANO IMPORT
 } from './ui-core.js';
 
 import { setupEventListeners } from './ui.js';
@@ -32,25 +33,18 @@ window.forceUpdateWallet = forceUpdateWallet;
 window.render = render;
 window.tickEconomy = tickEconomy;
 
-// --- POPRAWKA JEST TUTAJ ---
-// Usunąłem błędny fragment "/512" z adresu URL.
 const MAP_KEY = 'gVLyar0EiT75LpMPvAGQ';
 const MAP_URL = `https://api.maptiler.com/maps/streets-v2-dark/{z}/{x}/{y}.png?key=${MAP_KEY}`;
 
 L.tileLayer(MAP_URL, { 
     attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a>',
-    // Te opcje są poprawne i muszą zostać, aby mapa działała z kafelkami 512px
     tileSize: 512, 
     zoomOffset: -1, 
-    
     maxZoom: 22,
     minZoom: 0, 
     crossOrigin: true
 }).addTo(map);
-// --- KONIEC POPRAWKI ---
 
-
-// Tworzymy warstwę dla budynków
 map.createPane('buildingsPane');
 map.getPane('buildingsPane').style.zIndex = 650;
 
@@ -68,24 +62,21 @@ async function init() {
 
   generateAIPlayers(); 
   setupEventListeners();
+  initMapFilters(); // <--- WYWOŁANIE INICJALIZACJI FILTRÓW
   showPlayerLocation();
   
-  // UPDATED: Better debugging and error handling for server-side API
   try {
     console.log("🔄 Loading vehicles from server cache...");
     const vehicles = await fetchAllVehicles();
     console.log("✅ Vehicles loaded:", vehicles?.length || 0);
     
-    // Debug: Check if vehicles were actually loaded into state
     const totalInState = Object.values(state.vehicles).reduce((sum, vehicleMap) => sum + vehicleMap.size, 0);
     console.log("🎯 Vehicles in state:", totalInState);
     
-    // Debug: Log each vehicle type count
     Object.keys(state.vehicles).forEach(type => {
         const count = state.vehicles[type].size;
         if (count > 0) {
             console.log(`  ${type}: ${count} vehicles`);
-            // Log a sample vehicle for debugging
             const sample = Array.from(state.vehicles[type].values())[0];
             if (sample) {
                 console.log(`    Sample ${type}:`, { id: sample.id, lat: sample.lat, lon: sample.lon, title: sample.title });
@@ -109,14 +100,13 @@ async function init() {
 
   await fetchGlobalTakenVehicles();
   
-    // Update the periodic refresh:
     setInterval(async () => {
         console.log("⏰ Auto-refresh check...");
         await autoRefreshIfNeeded();
         await fetchGlobalTakenVehicles();
         updateVehiclesWithWeather(state.vehicles.plane);
         render();
-    }, 5 * 60 * 1000); // 5 minutes instead of 1 minute
+    }, 5 * 60 * 1000); 
 
   setInterval(tickEconomy, 60000);
   setInterval(tickGuilds, 60000);
@@ -128,18 +118,15 @@ async function init() {
   
   updateRankings();
   
-  // Force initial render after everything is loaded
   console.log("🎨 Initial render...");
   render();
   
-  // Debug: Check if markers are being created
   setTimeout(() => {
     console.log("🗺️ Map markers count:", state.markers.size);
     console.log("🗺️ Map bounds:", map.getBounds());
     console.log("🗺️ Map center:", map.getCenter());
   }, 2000);
   
-  // Log global scope exposure for debugging
   console.log("🌐 Game functions exposed to global scope for console access:");
   console.log("  - window.state (game state)");
   console.log("  - window.updateUI (update UI)");
@@ -147,7 +134,6 @@ async function init() {
   console.log("  - window.tickEconomy (manual economy tick)");
 }
 
-// Add a debug function that can be called from browser console
 window.debugVehicles = () => {
     console.log("=== VEHICLE DEBUG INFO ===");
     Object.keys(state.vehicles).forEach(type => {
@@ -165,7 +151,6 @@ window.debugVehicles = () => {
     console.log("=========================");
 };
 
-// Add debug function for forcing refresh
 window.debugRefresh = async () => {
     console.log("🔄 Manual refresh triggered...");
     try {

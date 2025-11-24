@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <div id="app" class="h-screen w-screen flex">
+    <div id="app" class="h-screen w-screen flex relative">
         <nav class="h-full w-16 bg-gray-900 border-r border-gray-800 z-30 flex flex-col items-center py-4 gap-2">
             <button data-nav-tab="profile" class="group relative w-12 h-12 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"><i class="ri-building-4-line text-2xl"></i><span class="nav-tooltip absolute left-16 w-max bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-md">Profil</span></button>
             <hr class="w-10 border-gray-700 my-1">
@@ -96,6 +96,19 @@
 
             <div class="flex-grow relative">
                 <div id="map" class="h-full w-full z-0"></div>
+
+                <div id="map-filters-types" class="absolute top-4 right-4 z-[400] flex flex-col gap-2 pointer-events-auto">
+                    </div>
+
+                <div id="map-filters-ownership" class="absolute bottom-6 right-4 z-[400] bg-gray-900/90 backdrop-blur border border-gray-600 rounded-lg p-1 flex gap-1 pointer-events-auto shadow-xl">
+                    <button data-map-view="all" class="px-4 py-2 text-xs font-bold rounded uppercase transition-colors text-gray-400 hover:text-white">
+                        Wszystkie
+                    </button>
+                    <button data-map-view="fleet" class="px-4 py-2 text-xs font-bold rounded uppercase transition-colors text-gray-400 hover:text-white">
+                        Moja Flota
+                    </button>
+                </div>
+
                 <aside id="content-panel" class="absolute top-0 left-0 h-full w-full max-w-md bg-gray-900/80 backdrop-blur-sm border-r border-gray-700/60 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out z-20 flex flex-col">
                     <header class="p-4 border-b border-gray-700/60 flex items-center justify-between">
                         <h2 id="panel-title" class="text-xl font-bold text-white"></h2>

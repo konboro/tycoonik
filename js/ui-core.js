@@ -1,9 +1,9 @@
-// js/ui-core.js - WERSJA KOMPLETNA Z POPRAWKAMI LICZNIKÓW
+// js/ui-core.js - WERSJA KOMPLETNA Z FILTRAMI MAPY (HUD)
 import { state } from './state.js';
 import { config } from './config.js';
 import { map } from './state.js';
 import { $, fmt, getProximityBonus, createIcon, getIconHtml, ICONS, getWeatherIcon } from './utils.js';
-import { calculateAssetValue } from './logic.js'; // <-- POPRAWKA: Prawidłowy import
+import { calculateAssetValue } from './logic.js'; 
 
 // Importujemy "Malarzy"
 import { 
@@ -37,7 +37,7 @@ function getCompanyInfoPopupContent() {
     Object.values(state.infrastructure).forEach(category => {
         Object.values(category).forEach(item => { if (item.owned) buildingCount++; });
     });
-    const companyValue = calculateAssetValue(); // Używamy importowanej funkcji
+    const companyValue = calculateAssetValue(); 
     return `<div style="font-family: 'Inter', sans-serif;"><h3 style="margin: 0; font-size: 16px; font-weight: bold;">${companyName}</h3><ul style="list-style: none; padding: 0; margin: 8px 0 0 0; font-size: 14px;"><li style="margin-bottom: 4px;"><strong>Pojazdy:</strong> ${vehicleCount}</li><li style="margin-bottom: 4px;"><strong>Budynki:</strong> ${buildingCount}</li><li><strong>Wartość firmy:</strong> ${fmt(companyValue)} VC</li></ul></div>`;
 }
 
@@ -89,22 +89,117 @@ export function updatePlayerMarkerIcon() {
     }
 }
 
+// ===== NOWA FUNKCJA: Inicjalizacja filtrów na mapie =====
+export function initMapFilters() {
+    const typesContainer = $('map-filters-types');
+    const ownershipContainer = $('map-filters-ownership');
+    
+    if (!typesContainer || !ownershipContainer) return;
+
+    // 1. Generuj przyciski typów pojazdów (Prawy Górny)
+    const types = ['plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
+    
+    typesContainer.innerHTML = '';
+    types.forEach(type => {
+        const btn = document.createElement('button');
+        btn.className = `w-10 h-10 bg-gray-800/90 border border-gray-600 rounded-lg flex items-center justify-center text-xl shadow-lg transition-all hover:bg-gray-700 map-type-filter`;
+        btn.dataset.type = type;
+        btn.title = `Pokaż/Ukryj: ${type}`;
+        
+        btn.innerHTML = getIconHtml(type, "w-6 h-6");
+        
+        btn.addEventListener('click', () => {
+            if (state.filters.types.includes(type)) {
+                state.filters.types = state.filters.types.filter(t => t !== type);
+            } else {
+                state.filters.types.push(type);
+            }
+            updateMapFilterButtons(); 
+            redrawMap(); 
+        });
+        
+        typesContainer.appendChild(btn);
+    });
+
+    // 2. Obsługa przełącznika Moje/Wszystkie (Prawy Dolny)
+    ownershipContainer.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const mode = e.target.dataset.mapView;
+            state.filters.mapView = mode;
+            updateMapFilterButtons();
+            redrawMap();
+        });
+    });
+
+    updateMapFilterButtons();
+}
+
+// Funkcja aktualizująca wygląd przycisków na podstawie state.filters
+function updateMapFilterButtons() {
+    // Aktualizuj typy (Prawy Górny)
+    document.querySelectorAll('.map-type-filter').forEach(btn => {
+        const type = btn.dataset.type;
+        if (state.filters.types.includes(type)) {
+            btn.classList.add('filter-btn-active');
+            btn.classList.remove('filter-btn-inactive');
+        } else {
+            btn.classList.remove('filter-btn-active');
+            btn.classList.add('filter-btn-inactive');
+        }
+    });
+
+    // Aktualizuj ownership (Prawy Dolny)
+    document.querySelectorAll('[data-map-view]').forEach(btn => {
+        if (btn.dataset.mapView === state.filters.mapView) {
+            btn.classList.add('view-toggle-active');
+        } else {
+            btn.classList.remove('view-toggle-active');
+        }
+    });
+}
+
+function createVehicleMarkerHtml(vehicle, isOwned) {
+    const iconPath = ICONS[vehicle.type] || '❓';
+    
+    if (iconPath.includes('.png') || iconPath.includes('/assets/')) {
+        return `
+            <div class="w-10 h-10 flex items-center justify-center">
+                <img src="${iconPath}" 
+                     class="w-8 h-8 object-contain drop-shadow-lg" 
+                     style="opacity: 0; transition: opacity 0.3s;"
+                     onload="this.style.opacity = 1;"
+                     onerror="this.parentNode.innerHTML='🛵';">
+            </div>
+        `;
+    }
+    
+    return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
+}
+
+// ===== ZAKTUALIZOWANA FUNKCJA: redrawMap =====
 export function redrawMap() {
     const visibleKeys = new Set();
     
-    // Rysowanie pojazdów
     Object.values(state.vehicles).forEach(vehicleMap => {
         for (const v of vehicleMap.values()) {
             const key = `${v.type}:${v.id}`;
             const isOwned = !!state.owned[key];
+
+            // 1. FILTR WŁASNOŚCI
             if (state.filters.mapView === 'fleet' && !isOwned) continue;
+
+            // 2. FILTR TYPÓW
             const typeMatch = state.filters.types.includes(v.type);
+            
+            // 3. FILTR KRAJÓW
             const countryMatch = !v.country || state.filters.countries.includes(v.country);
+
             let entry = state.markers.get(key);
+
             if (typeMatch && countryMatch && v.lat != null && isFinite(v.lat) && v.lon != null && isFinite(v.lon)) {
                 visibleKeys.add(key);
-                //const iconHtml = `<div class="w-full h-full flex items-center justify-center transition-transform duration-500">${getIconHtml(v.type, "w-8 h-8")}</div>`;
-                const iconHtml = createVehicleMarkerHtml(v);
+                
+                const iconHtml = createVehicleMarkerHtml(v, isOwned);
 
                 if (!entry) {
                     const marker = L.marker([v.lat, v.lon], { icon: createIcon(isOwned && v.isMoving) }).addTo(map);
@@ -119,14 +214,23 @@ export function redrawMap() {
                     state.markers.set(key, entry);
                 } else {
                     entry.marker.setLatLng([v.lat, v.lon]);
-                    entry.marker.getElement().innerHTML = iconHtml;
                     const iconEl = entry.marker.getElement();
                     if (iconEl) {
+                         if(iconEl.innerHTML !== iconHtml) iconEl.innerHTML = iconHtml;
+                         
                         if (isOwned && v.isMoving) iconEl.classList.add('is-moving');
                         else iconEl.classList.remove('is-moving');
                     }
                 }
-                if (isOwned && v.history && v.history.length > 1) { const latlngs = v.history.map(p => [p.lat, p.lon]); if (entry.trail) { entry.trail.setLatLngs(latlngs); } else { entry.trail = L.polyline(latlngs, { color: 'rgba(59, 130, 246, 0.5)', weight: 3 }).addTo(map); } } else if (entry.trail) { entry.trail.remove(); entry.trail = null; }
+                
+                if (isOwned && v.history && v.history.length > 1) { 
+                    const latlngs = v.history.map(p => [p.lat, p.lon]); 
+                    if (entry.trail) { entry.trail.setLatLngs(latlngs); } 
+                    else { entry.trail = L.polyline(latlngs, { color: 'rgba(59, 130, 246, 0.5)', weight: 3 }).addTo(map); } 
+                } else if (entry.trail) { 
+                    entry.trail.remove(); entry.trail = null; 
+                }
+
             }
         }
     });
@@ -139,7 +243,6 @@ export function redrawMap() {
         }
     }
     
-    // Rysowanie Stacji (na warstwie 'buildingsPane')
     for (const stationCode in config.infrastructure) {
         const station = config.infrastructure[stationCode];
         const key = `station:${stationCode}`;
@@ -151,7 +254,7 @@ export function redrawMap() {
                     iconSize: [64, 64], 
                     iconAnchor: [32, 32] 
                 }),
-                pane: 'buildingsPane', // Używamy warstwy z main.js
+                pane: 'buildingsPane', 
                 zIndexOffset: 100
             }).addTo(map);
             marker.bindPopup(`<b>${station.name}</b>`).on('click', () => { 
@@ -164,7 +267,6 @@ export function redrawMap() {
         }
     }
 
-    // Rysowanie Aktywów Gildii
     for (const assetKey in config.guildAssets) {
         const asset = config.guildAssets[assetKey];
         const key = `guildasset:${assetKey}`;
@@ -187,7 +289,7 @@ export function redrawMap() {
                      iconSize: [64, 64], 
                      iconAnchor: [32, 32] 
                  }),
-                 pane: 'buildingsPane', // Używamy warstwy z main.js
+                 pane: 'buildingsPane', 
                  zIndexOffset: 100
             }).addTo(map);
             marker.bindPopup(popupContent).on('click', () => { 
@@ -202,43 +304,20 @@ export function redrawMap() {
     }
 }
 
-function createVehicleMarkerHtml(vehicle, isOwned) {
-    const iconPath = ICONS[vehicle.type] || '❓';
-    
-    if (iconPath.includes('.png') || iconPath.includes('/assets/')) {
-        // PNG image - no background
-        return `
-            <div class="w-10 h-10 flex items-center justify-center">
-                <img src="${iconPath}" 
-                     class="w-8 h-8 object-contain drop-shadow-lg" 
-                     style="opacity: 0; transition: opacity 0.3s;"
-                     onload="this.style.opacity = 1;"
-                     onerror="this.parentNode.innerHTML='🛵';">
-            </div>
-        `;
-    }
-    
-    // Emoji fallback
-    return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
-}
-
-// ===== 3. GŁÓWNA AKTUALIZACJA UI (KPI) - POPRAWIONA =====
+// ===== 3. GŁÓWNA AKTUALIZACJA UI (KPI) =====
 
 export function updateUI(inM, outM) {
     const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
     const setTxt = (id, val) => { const el = $(id); if (el) el.textContent = val; };
     
-    // FIXED: Force immediate wallet update with better formatting
     const walletEl = $('wallet');
     if (walletEl) {
         const formattedWallet = fmt(state.wallet);
         walletEl.textContent = formattedWallet;
-        // Force a repaint to ensure immediate update
         walletEl.offsetHeight; 
         
-        // Add visual feedback for wallet changes
         if (walletEl.dataset.lastValue && walletEl.dataset.lastValue !== formattedWallet) {
-            walletEl.style.color = '#22c55e'; // Green flash
+            walletEl.style.color = '#22c55e';
             setTimeout(() => { walletEl.style.color = ''; }, 500);
         }
         walletEl.dataset.lastValue = formattedWallet;
@@ -258,10 +337,8 @@ export function updateUI(inM, outM) {
     const estimatedAssets = Math.max(0, calculateAssetValue() - state.wallet); 
     set('estimated-assets', fmt(estimatedAssets));
     
-    // FIXED: Better VC/h calculation with proper error handling
     const earningsHistory = state.profile.earnings_history || [];
     
-    // Filter out invalid values and calculate properly
     const validEarnings = earningsHistory.filter(e => 
         typeof e === 'number' && 
         isFinite(e) && 
@@ -272,13 +349,11 @@ export function updateUI(inM, outM) {
     
     let hourlyEstimate = 0;
     if (validEarnings.length > 0) {
-        // Calculate average per minute, then multiply by 60 for hourly
         const totalEarnings = validEarnings.reduce((sum, earning) => sum + earning, 0);
         const avgPerMinute = totalEarnings / validEarnings.length;
         hourlyEstimate = avgPerMinute * 60;
     }
     
-    // FIXED: Odometer with better formatting and error handling
     const odometer = $('hourly-earnings-odometer');
     if(odometer) {
         const earnings = Math.max(0, Math.round(hourlyEstimate));
@@ -286,7 +361,6 @@ export function updateUI(inM, outM) {
         
         odometer.innerHTML = '';
         
-        // Only process numeric characters
         for (const char of formattedEarnings) {
             if (char !== ' ' && char !== '.' && char !== ',') {
                 const digitEl = document.createElement('span');
@@ -300,12 +374,6 @@ export function updateUI(inM, outM) {
         labelEl.className = 'odometer-label';
         labelEl.textContent = 'VC/h';
         odometer.appendChild(labelEl);
-        
-        // Debug log for earnings (only when earnings > 0)
-        if (hourlyEstimate > 0 && Math.random() < 0.1) { // Log 10% of the time to reduce spam
-            console.log(`💰 Hourly estimate: ${fmt(hourlyEstimate)} VC/h (from ${validEarnings.length} data points)`);
-            console.log(`📊 Recent earnings:`, validEarnings.slice(-5));
-        }
     }
 
     const hasUnclaimed = Object.values(state.achievements).some(a => a.unlocked && !a.claimed);
@@ -319,13 +387,12 @@ export function updateUI(inM, outM) {
     }
 }
 
-// Helper function to force immediate UI update
 export function forceUpdateWallet() {
     const walletEl = $('wallet');
     if (walletEl) {
         const newValue = fmt(state.wallet);
         walletEl.textContent = newValue;
-        walletEl.style.color = '#22c55e'; // Green flash
+        walletEl.style.color = '#22c55e';
         setTimeout(() => { walletEl.style.color = ''; }, 300);
         console.log(`💰 Wallet force updated: ${newValue}`);
     }
@@ -347,7 +414,7 @@ export function render() {
     const showControls = ['store', 'fleet', 'stations', 'market'].includes(state.activeTab);
     if(controls) controls.style.display = showControls ? 'block' : 'none';
 
-    // Filtry
+    // Filtry w panelu bocznym
     if (showControls && filtersContainer) {
         filtersContainer.innerHTML = '';
         let filterHtml = `<div id="filterRarity"><h4 class="font-semibold text-sm mb-2">Rzadkość</h4><div class="space-y-1 text-sm"><label class="flex items-center"><input type="checkbox" value="common" ${state.filters.rarities.includes('common') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Common</label><label class="flex items-center"><input type="checkbox" value="rare" ${state.filters.rarities.includes('rare') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Rare</label><label class="flex items-center"><input type="checkbox" value="epic" ${state.filters.rarities.includes('epic') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Epic</label><label class="flex items-center"><input type="checkbox" value="legendary" ${state.filters.rarities.includes('legendary') ? 'checked' : ''} class="mr-2 rounded bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Legendary</label></div></div><div id="filterMapView"><h4 class="font-semibold text-sm mb-2">Widok mapy</h4><div class="space-y-1 text-sm"><label class="flex items-center"><input type="radio" name="mapView" value="all" ${state.filters.mapView === 'all' ? 'checked' : ''} class="mr-2 bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Wszystkie</label><label class="flex items-center"><input type="radio" name="mapView" value="fleet" ${state.filters.mapView === 'fleet' ? 'checked' : ''} class="mr-2 bg-gray-700 border-gray-500 text-blue-500 focus:ring-blue-600"> Moja flota</label></div></div>`;
@@ -373,7 +440,6 @@ export function render() {
         filtersContainer.innerHTML = filterHtml;
     }
     
-    // Router widoków
     switch (state.activeTab) { 
         case 'stats': renderCharts(listContainer); break; 
         case 'achievements': renderAchievements(listContainer); break; 
@@ -390,7 +456,6 @@ export function render() {
         default: break; 
     }
     
-    // Pokaż/Ukryj kartę pojazdu
     const vehicleCard = $('vehicle-card');
     if (vehicleCard) {
         if (state.selectedVehicleKey) { renderVehicleCard(state.selectedVehicleKey); } 
