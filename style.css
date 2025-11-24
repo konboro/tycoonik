@@ -1,69 +1,233 @@
-body { font-family: 'Inter', sans-serif; overflow: hidden; }
-.leaflet-marker-icon.is-moving { animation: pulse 2s infinite; border-radius: 50%; }
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-    70% { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-}
-.player-location-icon { font-size: 32px; text-shadow: 0 0 8px rgba(255, 255, 255, 0.5); }
-.rarity-common { border-left-color: #9ca3af; }
-.rarity-rare { border-left-color: #3b82f6; }
-.rarity-epic { border-left-color: #8b5cf6; }
-.rarity-legendary { border-left-color: #f59e0b; }
-.card-rarity-common { border-top-color: #9ca3af; }
-.card-rarity-rare { border-top-color: #3b82f6; }
-.card-rarity-epic { border-top-color: #8b5cf6; }
-.card-rarity-legendary { border-top-color: #f59e0b; }
-#prize-reveal { perspective: 1000px; }
-#prize-card { transform-style: preserve-3d; transition: transform 0.8s; }
-#prize-card.is-flipped { transform: rotateY(180deg); }
-.prize-card-face { backface-visibility: hidden; }
-.prize-card-back { transform: rotateY(180deg); }
-.nav-tooltip { visibility: hidden; opacity: 0; transition: opacity 0.2s, visibility 0.2s; }
-.group:hover .nav-tooltip { visibility: visible; opacity: 1; }
-.station-details-container { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; background-color: rgba(17, 24, 39, 0.5); }
-.station-details-container.visible { max-height: 1000px; }
-.carousel-track-container { flex-grow: 1; overflow: hidden; }
-.carousel-track { display: flex; height: 100%; transition: transform 0.3s ease-in-out; }
-.carousel-slide { width: 100%; flex-shrink: 0; padding: 0 4px; box-sizing: border-box; }
-.chart-wrapper { height: 100%; display: flex; flex-direction: column; }
-#guild-chat-messages { scroll-behavior: smooth; }
-#mainList::-webkit-scrollbar { width: 6px; }
-#mainList::-webkit-scrollbar-track { background: #1f2937; }
-#mainList::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
-#mainList::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-.odometer-container { font-family: 'Roboto Mono', monospace; background: #111827; padding: 4px 8px; border-radius: 6px; display: inline-flex; gap: 2px; border: 1px solid #374151; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
-.odometer-digit { background-color: #1f2937; color: #16a34a; padding: 2px 4px; border-radius: 3px; font-size: 1.125rem; line-height: 1.5rem; font-weight: 700; text-shadow: 0 0 5px rgba(22, 163, 74, 0.7); }
-.odometer-label { font-size: 0.75rem; color: #9ca3af; align-self: flex-end; margin-left: 4px; padding-bottom: 2px; }
-
-/* Aktywny przycisk typu pojazdu */
-.filter-btn-active {
-    background-color: #2563eb !important; /* Blue-600 */
-    color: white !important;
-    border-color: #60a5fa !important; /* Blue-400 */
-    box-shadow: 0 0 8px rgba(37, 99, 235, 0.6);
+/* style.css - INDUSTRIAL THEME */
+:root {
+    --safety-yellow: #eab308;
+    --safety-yellow-dim: #854d0e;
+    --industrial-black: #0a0a0a;
+    --panel-bg: #121212;
+    --panel-border: #262626;
+    --text-light: #e5e5e5;
+    --text-dim: #737373;
 }
 
-/* Nieaktywny przycisk typu (wyszarzony) */
-.filter-btn-inactive {
-    opacity: 0.6;
-    filter: grayscale(100%);
+body {
+    font-family: 'Roboto', sans-serif;
 }
 
-/* Styl kafelków w panelu bocznym */
-.panel-filter-btn {
+.font-header {
+    font-family: 'Oswald', sans-serif;
+}
+
+.font-mono-tech {
+    font-family: 'Roboto Mono', monospace;
+}
+
+/* Map Layer */
+.grid-overlay {
+    background-image: 
+        linear-gradient(rgba(234, 179, 8, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(234, 179, 8, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* NAVIGATION SIDEBAR */
+.nav-sidebar {
+    background: var(--industrial-black);
+    border-right: 1px solid var(--panel-border);
+}
+
+.nav-btn {
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-width: 1px;
-    border-style: solid;
-    border-radius: 0.5rem; /* rounded-lg */
-    transition: all 0.2s ease-in-out;
+    color: #525252;
+    border-radius: 4px;
+    transition: all 0.2s;
+    position: relative;
+    border: 1px solid transparent;
 }
 
-/* Aktywny przełącznik na dole (Moje/Wszystkie) */
-.view-toggle-active {
-    background-color: #2563eb !important; /* Blue-600 */
-    color: white !important;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+.nav-btn:hover, .nav-btn.active {
+    background: #1a1a1a;
+    color: var(--safety-yellow);
+    border-color: rgba(234, 179, 8, 0.2);
 }
+
+.nav-btn.active::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--safety-yellow);
+}
+
+.nav-tooltip {
+    position: absolute;
+    left: 60px;
+    background: var(--safety-yellow);
+    color: black;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Oswald', sans-serif;
+    border-radius: 2px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    white-space: nowrap;
+    pointer-events: none;
+    clip-path: polygon(5% 0, 100% 0, 100% 100%, 0% 100%, 0% 20%);
+    z-index: 100;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+    text-transform: uppercase;
+}
+
+.nav-btn:hover .nav-tooltip {
+    opacity: 1;
+    visibility: visible;
+    left: 56px;
+}
+
+/* KPI PANEL */
+.kpi-panel {
+    background: #0f0f0f;
+    border-bottom: 1px solid var(--panel-border);
+    border-top: 3px solid var(--safety-yellow);
+}
+
+.odometer-box {
+    background: #000;
+    border: 1px solid #333;
+    padding: 2px 4px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+}
+
+.odometer-digit {
+    background: #1a1a1a;
+    color: var(--text-light);
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    width: 14px;
+    text-align: center;
+    border-radius: 1px;
+    border: 1px solid #333;
+}
+
+/* SIDE PANEL */
+.content-panel {
+    background: rgba(18, 18, 18, 0.98);
+    border-right: 1px solid var(--safety-yellow);
+    box-shadow: 10px 0 50px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+}
+
+.hazard-header {
+    background: repeating-linear-gradient(
+        45deg,
+        #000,
+        #000 10px,
+        #1f1f1f 10px,
+        #1f1f1f 20px
+    );
+    padding: 4px;
+}
+
+/* BUTTONS */
+.btn-action {
+    background: var(--safety-yellow);
+    color: black;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+    transition: all 0.2s;
+}
+.btn-action:hover {
+    background: #fcd34d;
+    transform: translateY(-1px);
+}
+
+.btn-cancel {
+    background: #333;
+    color: #aaa;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-weight: 600;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.2s;
+}
+.btn-cancel:hover {
+    background: #444;
+    color: white;
+}
+
+/* SCROLLBAR */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border: 1px solid #000; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--safety-yellow); }
+
+/* TICKER ANIMATION */
+.ticker-wrap {
+    overflow: hidden;
+    height: 100%;
+}
+.ticker {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 30s linear infinite;
+}
+@keyframes ticker {
+    0% { transform: translate3d(100%, 0, 0); }
+    100% { transform: translate3d(-100%, 0, 0); }
+}
+
+/* MAP HUD BUTTONS */
+.map-type-filter {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+}
+.filter-btn-active {
+    background-color: var(--safety-yellow) !important;
+    color: black !important;
+    border-color: #fcd34d !important;
+}
+.filter-btn-inactive {
+    background-color: #1a1a1a !important;
+    color: #555 !important;
+    border-color: #333 !important;
+}
+.view-toggle-active {
+    background-color: var(--safety-yellow) !important;
+    color: black !important;
+}
+
+/* CARD FLIP */
+.perspective-1000 { perspective: 1000px; }
+.transform-style-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+.is-flipped { transform: rotateY(180deg); }
+
+/* ASSET ICONS ANIMATION */
+.leaflet-marker-icon.is-moving img { animation: engine-pulse 1s infinite alternate; }
+@keyframes engine-pulse { from { opacity: 0.8; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
+
+/* LEAFLET CUSTOMIZATION */
+.leaflet-bar a { background-color: #1a1a1a !important; color: #eab308 !important; border-bottom: 1px solid #333 !important; }
+.leaflet-bar a:hover { background-color: #222 !important; color: white !important; }
+.leaflet-container { background: #050505 !important; font-family: 'Roboto', sans-serif !important; }
+.leaflet-popup-content-wrapper { background: #121212 !important; color: #e5e5e5 !important; border: 1px solid #eab308; border-radius: 0 !important; }
+.leaflet-popup-tip { background: #eab308 !important; }
