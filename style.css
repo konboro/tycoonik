@@ -125,6 +125,38 @@ body {
     border: 1px solid #333;
 }
 
+/* Header Social Buttons */
+.header-social-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    color: #737373; /* text-dim */
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.header-social-btn:hover {
+    background: #1a1a1a;
+    color: var(--safety-yellow);
+    border-color: #333;
+}
+
+.header-social-btn i {
+    font-size: 1.25rem; /* 20px */
+}
+
+.header-social-btn .label {
+    font-size: 0.6rem; /* 10px */
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 2px;
+    font-family: 'Oswald', sans-serif;
+}
+
 /* SIDE PANEL */
 .content-panel {
     background: rgba(18, 18, 18, 0.98);
@@ -188,7 +220,7 @@ body {
 .ticker {
     display: inline-block;
     white-space: nowrap;
-    animation: ticker 45s linear infinite; /* Zwolniliśmy animację dla czytelności */
+    animation: ticker 45s linear infinite;
 }
 .ticker:hover {
     animation-play-state: paused;
@@ -215,6 +247,17 @@ body {
 .view-toggle-active {
     background-color: var(--safety-yellow) !important;
     color: black !important;
+}
+
+/* PANEL FILTER BUTTONS */
+.panel-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease-in-out;
 }
 
 /* CARD FLIP */
