@@ -76,7 +76,6 @@
     <main class="flex-grow flex flex-col relative">
         
         <header id="kpi-panel" class="kpi-panel h-16 flex items-center justify-between px-6 z-40 shrink-0 shadow-lg">
-            
             <div class="flex items-center gap-4">
                 <div class="w-10 h-10 bg-gray-800 border border-gray-700 flex items-center justify-center text-2xl rounded-sm" id="company-logo-container">
                     <span id="company-logo">🏢</span>
@@ -88,7 +87,6 @@
                         <button id="edit-company-name-btn" class="text-gray-600 hover:text-[#eab308] transition-colors"><i class="ri-pencil-fill text-xs"></i></button>
                     </div>
                 </div>
-                
                 <div class="ml-6 w-40">
                     <div class="flex justify-between text-[10px] text-gray-400 font-bold mb-1 font-mono">
                         <span>LVL <span id="level">1</span></span>
@@ -130,11 +128,8 @@
         </header>
 
         <div class="flex-grow relative overflow-hidden">
-            
             <div id="map" class="w-full h-full z-0 bg-[#0a0a0a]"></div>
             <div class="grid-overlay"></div>
-
-            <div id="notification-container" class="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none"></div>
 
             <div id="map-filters-types" class="absolute top-4 right-4 z-[400] flex flex-col gap-2 pointer-events-auto"></div>
 
@@ -153,9 +148,7 @@
                         <i class="ri-close-line text-xl"></i>
                     </button>
                 </div>
-                
                 <div class="hazard-header h-2 shrink-0"></div>
-
                 <div id="panel-controls" class="p-3 bg-[#151515] border-b border-[#333] hidden">
                     <div class="flex gap-2 mb-3">
                         <div class="relative flex-grow">
@@ -169,9 +162,7 @@
                         <div id="filters-container" class="p-3 border-t border-[#333]"></div>
                     </details>
                 </div>
-
                 <main id="mainList" class="flex-grow overflow-y-auto p-3 space-y-3 bg-[#0f0f0f] custom-scrollbar"></main>
-                
                 <footer class="p-2 bg-black border-t border-[#333] text-[10px] text-gray-600 flex justify-between font-mono">
                     <span>SYSTEM: ONLINE</span>
                     <span id="status-bar">Gotowy</span>
@@ -183,10 +174,8 @@
                     <span>SPECYFIKACJA TECHNICZNA</span>
                     <button id="close-card-btn" class="hover:bg-black/20 rounded px-1"><i class="ri-close-line"></i></button>
                 </div>
-                <div id="vehicle-card-content" class="bg-[#181818] border-x border-b border-[#333] p-5">
-                    </div>
+                <div id="vehicle-card-content" class="bg-[#181818] border-x border-b border-[#333] p-5"></div>
             </div>
-
         </div>
 
         <footer class="bg-black border-t-4 border-[#eab308] z-50 shrink-0 relative h-10 flex items-center">
@@ -195,10 +184,8 @@
                 <div class="absolute right-[-10px] top-0 h-full w-4 bg-[#eab308] transform skew-x-12 origin-bottom"></div>
             </div>
             <div class="ticker-wrap w-full bg-black border-t-0">
-                <div class="ticker font-bold text-sm text-[#eab308] uppercase tracking-wider flex items-center h-full">
-                    <span class="mx-8"><i class="ri-arrow-up-line text-green-500"></i> Ceny paliwa stabilne</span>
-                    <span class="mx-8"><i class="ri-vip-crown-fill text-purple-500"></i> Nowe zlecenia VIP dostępne w regionie Europa</span>
-                    <span class="mx-8 text-white">+++ PALIWO: DIESEL 1.45 VC/L +++ PRĄD 0.80 VC/kWh +++</span>
+                <div id="live-ticker" class="ticker font-bold text-sm uppercase tracking-wider flex items-center h-full">
+                    <span class="mx-8 text-[#eab308]"><i class="ri-wifi-line"></i> SYSTEM ONLINE</span>
                 </div>
             </div>
         </footer>
@@ -224,7 +211,6 @@
                 </div>
             </div>
         </div>
-
         <div id="confirm-modal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center backdrop-blur-sm">
             <div class="bg-[#121212] border border-[#333] p-6 w-full max-w-sm text-center shadow-xl">
                 <div class="text-[#eab308] text-4xl mb-2"><i class="ri-alert-line"></i></div>
@@ -236,7 +222,6 @@
                 </div>
             </div>
         </div>
-        
         <div id="asset-details-modal" class="fixed inset-0 bg-black/80 z-[90] hidden items-center justify-center backdrop-blur-sm">
             <div class="bg-[#121212] border border-[#333] w-full max-w-3xl shadow-2xl">
                 <div class="bg-[#1a1a1a] p-4 border-b border-[#333] flex justify-between items-center">
@@ -255,12 +240,10 @@
                 </div>
             </div>
         </div>
-        
         <div id="sell-modal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center backdrop-blur-sm">
             <div class="bg-[#121212] border border-[#333] p-6 w-full max-w-md shadow-xl">
                 <h3 class="text-xl font-bold text-white font-header uppercase mb-1">Sprzedaż Rynkowa</h3>
                 <p id="sell-modal-text" class="text-gray-500 text-xs font-mono mb-4 uppercase"></p>
-                
                 <div class="space-y-4">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cena Wywoławcza (VC)</label>
@@ -276,9 +259,7 @@
                         </select>
                     </div>
                 </div>
-                
                 <div id="sell-modal-info" class="mt-4 p-2 bg-[#1a1a1a] border border-[#333] text-xs text-gray-400 font-mono"></div>
-                
                 <div class="flex gap-3 mt-6">
                     <button id="cancel-sell-btn" class="flex-1 btn-cancel py-2 border border-[#333]">Anuluj</button>
                     <button id="confirm-sell-btn" class="flex-1 btn-action py-2">Wystaw Ofertę</button>

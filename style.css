@@ -188,7 +188,10 @@ body {
 .ticker {
     display: inline-block;
     white-space: nowrap;
-    animation: ticker 30s linear infinite;
+    animation: ticker 45s linear infinite; /* Zwolniliśmy animację dla czytelności */
+}
+.ticker:hover {
+    animation-play-state: paused;
 }
 @keyframes ticker {
     0% { transform: translate3d(100%, 0, 0); }
