@@ -53,43 +53,81 @@ export function renderVehicleList(container) {
         const ownedData = state.owned[key];
         const price = config.basePrice[v.type] || 1000;
         const rarity = getVehicleRarity(v);
+        const details = config.vehicleDetails[v.type] || { power: '-', maxSpeed: '-' };
         
+        // Obliczenia ekonomiczne
+        const earningsPerKm = config.baseRate[v.type] || 0;
+        const isElectric = config.energyConsumption[v.type] > 0;
+        const consumption = isElectric ? config.energyConsumption[v.type] : config.fuelConsumption[v.type];
+        const pricePerUnit = state.economy.energyPrices[v.country || 'Europe']?.[isElectric ? 'Electricity' : 'Diesel'] || (isElectric ? 0.22 : 1.85);
+        const costPerKm = (consumption / 100) * pricePerUnit;
+        const netEarnings = earningsPerKm - costPerKm;
+
         const el = document.createElement('div');
-        // Industrial Card Style
         el.className = `group bg-[#1a1a1a] border border-[#333] p-3 hover:border-[#eab308] transition-colors cursor-pointer relative overflow-hidden mb-3`;
         el.dataset.key = key;
         
-        const statusColor = v.status === 'in-use' ? 'text-green-500 border-green-900 bg-green-900/20' : 'text-gray-500 border-gray-800 bg-gray-900';
-        const statusText = v.status === 'in-use' ? 'W TRASIE' : 'POSTÓJ';
+        // Status Dot Logic
+        let statusDotClass = 'bg-gray-500 shadow-[0_0_5px_rgba(107,114,128,0.5)]'; // Offline
+        if (v.status === 'in-use') statusDotClass = 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse';
+        else if (v.status === 'online') statusDotClass = 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.8)]';
+
         const vTitle = isOwned ? (ownedData.customName || v.title) : v.title;
         
         el.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <div class="flex gap-3">
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex gap-3 items-center">
                     <div class="w-12 h-12 bg-black border border-gray-700 flex items-center justify-center text-gray-400 text-2xl shrink-0">
                         ${getIconHtml(v.type)}
                     </div>
                     <div>
-                        <div class="font-bold text-white text-sm group-hover:text-[#eab308] transition-colors font-header tracking-wide uppercase">${vTitle}</div>
+                        <div class="flex items-center gap-2">
+                            ${isOwned ? `<div class="w-2.5 h-2.5 rounded-full ${statusDotClass}"></div>` : ''}
+                            <div class="font-bold text-white text-sm group-hover:text-[#eab308] transition-colors font-header tracking-wide uppercase truncate max-w-[160px]">${vTitle}</div>
+                        </div>
                         <div class="text-[10px] text-gray-500 font-mono mt-0.5 uppercase">${v.type} • ${v.country || 'GLOBAL'} • <span class="text-${rarity === 'legendary' ? 'yellow' : rarity === 'epic' ? 'purple' : 'blue'}-500">${rarity}</span></div>
                     </div>
                 </div>
                 <div class="text-right shrink-0">
-                    ${isOwned ? `<span class="px-1.5 py-0.5 text-[10px] font-bold uppercase border ${statusColor}">${statusText}</span>` : `<span class="font-mono text-[#eab308] font-bold">${fmt(price)} VC</span>`}
+                    ${isOwned ? 
+                        `<div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Przebieg</div><div class="font-mono text-xl text-white font-bold">${fmt(ownedData.odo_km || 0)} <span class="text-xs text-gray-600">km</span></div>` : 
+                        `<span class="font-mono text-[#eab308] font-bold text-lg">${fmt(price)} VC</span>`
+                    }
                 </div>
             </div>
             
-            ${isOwned ? `
-            <div class="grid grid-cols-3 gap-1 mt-3 text-[10px] font-mono text-gray-400 border-t border-[#333] pt-2">
-                <div><i class="ri-dashboard-3-line"></i> ${fmt(ownedData.odo_km || 0)} km</div>
-                <div><i class="ri-tools-line"></i> ${Math.round(ownedData.wear || 0)}% zuż.</div>
-                <div class="text-right text-green-500 font-bold">+${fmt(ownedData.earned_vc || 0)} VC</div>
+            <div class="grid grid-cols-3 gap-px bg-[#333] border border-[#333] rounded-sm overflow-hidden mb-3 text-center">
+                <div class="bg-[#151515] p-1">
+                    <div class="text-[9px] text-gray-500 uppercase">Moc</div>
+                    <div class="text-[10px] text-gray-300 font-mono">${details.power}</div>
+                </div>
+                <div class="bg-[#151515] p-1">
+                    <div class="text-[9px] text-gray-500 uppercase">V-Max</div>
+                    <div class="text-[10px] text-gray-300 font-mono">${details.maxSpeed}</div>
+                </div>
+                <div class="bg-[#151515] p-1">
+                    <div class="text-[9px] text-gray-500 uppercase">Zysk/km</div>
+                    <div class="text-[10px] text-green-500 font-mono font-bold">${earningsPerKm.toFixed(2)}</div>
+                </div>
+                <div class="bg-[#151515] p-1">
+                    <div class="text-[9px] text-gray-500 uppercase">Koszt/km</div>
+                    <div class="text-[10px] text-red-400 font-mono">${costPerKm.toFixed(2)}</div>
+                </div>
+                <div class="bg-[#151515] p-1 col-span-2">
+                    <div class="text-[9px] text-gray-500 uppercase">Netto</div>
+                    <div class="text-[10px] text-blue-400 font-mono font-bold">${netEarnings.toFixed(2)} VC/km</div>
+                </div>
             </div>
-            <div class="absolute bottom-0 left-0 w-full h-0.5 bg-[#333]">
-                <div class="h-full bg-[#eab308]" style="width: ${Math.min(100, (ownedData.xp || 0))}%"></div>
-            </div>
+
+            ${!isOwned ? `
+                <button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-xs font-bold py-1.5 uppercase transition border border-[#333]" data-buy="${key}|${price}">Zakup Jednostkę</button>
             ` : `
-            <button class="w-full mt-2 bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-xs font-bold py-1 uppercase transition border border-[#333]" data-buy="${key}|${price}">Zakup Jednostkę</button>
+                <div class="grid grid-cols-3 gap-1 mt-2 text-[10px] font-mono text-gray-400">
+                    <div class="col-span-2 flex items-center gap-2">
+                        <i class="ri-tools-line"></i> Zużycie: <span class="${(ownedData.wear||0) > 80 ? 'text-red-500' : 'text-white'}">${Math.round(ownedData.wear || 0)}%</span>
+                    </div>
+                    <div class="text-right text-green-500 font-bold">+${fmt(ownedData.earned_vc || 0)} VC</div>
+                </div>
             `}
         `;
         container.appendChild(el);
@@ -132,16 +170,24 @@ export function renderInfrastructure(container) {
 }
 
 export function renderStationDetails(id, container) {
-    // Prosta tabela przylotów/odlotów w stylu terminala
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
     container.innerHTML = '<div class="text-center text-gray-600">Pobieranie danych satelitarnych...</div>';
     
-    // (Tu normalnie byłaby logika pobierania danych jak w poprzedniej wersji, 
-    // ale skróciłem dla czytelności - zachowaj logikę z poprzedniego pliku js, tylko zmień HTML tabeli na font-mono)
+    // Symulacja danych, aby nie wywalało błędu przy braku API
     if (state.stationData[id]) {
-        // ... implementacja ...
-        container.innerHTML = `<div class="text-green-500">SYSTEM ONLINE</div>`; // Placeholder
+        // Tutaj można przywrócić pełną logikę tabeli jeśli API działa
+        const earnings = state.infrastructure[type === 'train' ? 'trainStations' : 'busTerminals']?.[id]?.hourlyEarnings || 0;
+        container.innerHTML = `
+            <div class="flex justify-between text-gray-400 border-b border-[#333] pb-1 mb-1">
+                <span>Status Systemu</span>
+                <span class="text-green-500">ONLINE</span>
+            </div>
+            <div class="flex justify-between text-gray-400">
+                <span>Est. Przychód</span>
+                <span class="text-[#eab308]">+${fmt(earnings)} VC/h</span>
+            </div>
+        `;
     }
 }
 
@@ -174,7 +220,6 @@ export function renderGuildTab(container) {
                 </div>`; 
         }
     } else {
-        // Widok gildii (z poprzedniego kodu, ale ostylowany)
         const myGuild = guilds[playerGuildId]; 
         if(!myGuild) return;
         container.innerHTML = `
@@ -237,7 +282,6 @@ export function renderVehicleCard(key) {
     const v = { ...baseData, ...(state.vehicles[type]?.get(id) || {}) };
     const details = config.vehicleDetails[type] || {};
     
-    // Wypełnianie kontenera
     const container = document.getElementById('vehicle-card-content');
     
     container.innerHTML = `
@@ -295,7 +339,6 @@ export function renderVehicleCard(key) {
     document.getElementById('vehicle-card').classList.remove('translate-y-[150%]');
 }
 
-// Pozostałe proste renderery (Lootbox, Market, etc.) w podobnym stylu...
 export function renderLootboxTab(container) {
     container.innerHTML = '<div class="p-4 grid grid-cols-2 gap-4"></div>';
     for(const k in lootboxConfig) {
@@ -312,11 +355,8 @@ export function renderLootboxTab(container) {
     }
 }
 
-// Reszta funkcji (Company, Friends, Transaction, Market, Stats) 
-// powinna być analogicznie dostosowana do klas z style.css (bg-[#1a1a1a], border-[#333], font-header itp.)
-// Skopiuj logikę z poprzedniego renderers.js i podmień klasy CSS.
-export function renderCompanyTab(container) { /* ... */ }
-export function renderFriendsTab(container) { /* ... */ }
+export function renderCompanyTab(container) { /* Skopiuj z poprzedniego pliku lub pozostaw placeholder */ }
+export function renderFriendsTab(container) { /* Skopiuj z poprzedniego pliku */ }
 export function renderTransactionHistory(container) { /* ... */ }
 export function renderMarket(container) { /* ... */ }
 export function renderRankings(container) { /* ... */ }
