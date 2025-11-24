@@ -67,66 +67,75 @@ export function renderVehicleList(container) {
         el.className = `group bg-[#1a1a1a] border border-[#333] p-3 hover:border-[#eab308] transition-colors cursor-pointer relative overflow-hidden mb-3`;
         el.dataset.key = key;
         
-        // Status Dot Logic
-        let statusDotClass = 'bg-gray-500 shadow-[0_0_5px_rgba(107,114,128,0.5)]'; // Offline
-        if (v.status === 'in-use') statusDotClass = 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse';
-        else if (v.status === 'online') statusDotClass = 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.8)]';
+        // KROPKI STATUSU
+        let statusDotClass = 'bg-gray-600 shadow-[0_0_5px_rgba(75,85,99,0.5)]'; // Offline (Szara)
+        if (v.status === 'in-use') statusDotClass = 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse'; // W ruchu (Zielona)
+        else if (v.status === 'online') statusDotClass = 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.8)]'; // Gotowy (Niebieska)
 
         const vTitle = isOwned ? (ownedData.customName || v.title) : v.title;
         
         el.innerHTML = `
-            <div class="flex justify-between items-start mb-3">
+            <div class="flex justify-between items-start mb-4">
                 <div class="flex gap-3 items-center">
-                    <div class="w-12 h-12 bg-black border border-gray-700 flex items-center justify-center text-gray-400 text-2xl shrink-0">
+                    <div class="w-14 h-14 bg-black border border-gray-700 flex items-center justify-center text-gray-400 text-3xl shrink-0">
                         ${getIconHtml(v.type)}
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
-                            ${isOwned ? `<div class="w-2.5 h-2.5 rounded-full ${statusDotClass}"></div>` : ''}
-                            <div class="font-bold text-white text-sm group-hover:text-[#eab308] transition-colors font-header tracking-wide uppercase truncate max-w-[160px]">${vTitle}</div>
+                        <div class="flex items-center gap-2 mb-1">
+                            ${isOwned ? `<div class="w-3 h-3 rounded-full ${statusDotClass}" title="Status"></div>` : ''}
+                            <div class="font-bold text-white text-base group-hover:text-[#eab308] transition-colors font-header tracking-wide uppercase truncate max-w-[150px] leading-none">${vTitle}</div>
                         </div>
-                        <div class="text-[10px] text-gray-500 font-mono mt-0.5 uppercase">${v.type} • ${v.country || 'GLOBAL'} • <span class="text-${rarity === 'legendary' ? 'yellow' : rarity === 'epic' ? 'purple' : 'blue'}-500">${rarity}</span></div>
+                        <div class="text-xs text-gray-500 font-mono uppercase">${v.type} • ${v.country || 'GLOBAL'}</div>
+                        <div class="text-xs font-bold uppercase mt-1 text-${rarity === 'legendary' ? 'yellow' : rarity === 'epic' ? 'purple' : 'blue'}-500">${rarity}</div>
                     </div>
                 </div>
                 <div class="text-right shrink-0">
                     ${isOwned ? 
-                        `<div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Przebieg</div><div class="font-mono text-xl text-white font-bold">${fmt(ownedData.odo_km || 0)} <span class="text-xs text-gray-600">km</span></div>` : 
-                        `<span class="font-mono text-[#eab308] font-bold text-lg">${fmt(price)} VC</span>`
+                        `<div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Całkowity Zysk</div><div class="font-mono text-2xl text-green-500 font-bold">+${fmt(ownedData.earned_vc || 0)}</div>` : 
+                        `<div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Cena</div><span class="font-mono text-[#eab308] font-bold text-xl">${fmt(price)} VC</span>`
                     }
                 </div>
             </div>
             
-            <div class="grid grid-cols-3 gap-px bg-[#333] border border-[#333] rounded-sm overflow-hidden mb-3 text-center">
-                <div class="bg-[#151515] p-1">
-                    <div class="text-[9px] text-gray-500 uppercase">Moc</div>
-                    <div class="text-[10px] text-gray-300 font-mono">${details.power}</div>
+            <div class="grid grid-cols-3 gap-px bg-[#444] border border-[#333] rounded-sm overflow-hidden mb-3 text-center">
+                <div class="bg-[#1a1a1a] p-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Moc</div>
+                    <div class="text-sm text-gray-200 font-mono font-bold">${details.power}</div>
                 </div>
-                <div class="bg-[#151515] p-1">
-                    <div class="text-[9px] text-gray-500 uppercase">V-Max</div>
-                    <div class="text-[10px] text-gray-300 font-mono">${details.maxSpeed}</div>
+                <div class="bg-[#1a1a1a] p-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">V-Max</div>
+                    <div class="text-sm text-gray-200 font-mono font-bold">${details.maxSpeed}</div>
                 </div>
-                <div class="bg-[#151515] p-1">
-                    <div class="text-[9px] text-gray-500 uppercase">Zysk/km</div>
-                    <div class="text-[10px] text-green-500 font-mono font-bold">${earningsPerKm.toFixed(2)}</div>
+                
+                <div class="bg-[#1a1a1a] p-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Przebieg</div>
+                    <div class="text-sm text-white font-mono font-bold">${isOwned ? fmt(ownedData.odo_km) : '0'} km</div>
                 </div>
-                <div class="bg-[#151515] p-1">
-                    <div class="text-[9px] text-gray-500 uppercase">Koszt/km</div>
-                    <div class="text-[10px] text-red-400 font-mono">${costPerKm.toFixed(2)}</div>
+
+                <div class="bg-[#1a1a1a] p-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Zysk/km</div>
+                    <div class="text-sm text-green-500 font-mono font-bold">${earningsPerKm.toFixed(1)}</div>
                 </div>
-                <div class="bg-[#151515] p-1 col-span-2">
-                    <div class="text-[9px] text-gray-500 uppercase">Netto</div>
-                    <div class="text-[10px] text-blue-400 font-mono font-bold">${netEarnings.toFixed(2)} VC/km</div>
+                <div class="bg-[#1a1a1a] p-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Koszt/km</div>
+                    <div class="text-sm text-red-400 font-mono font-bold">${costPerKm.toFixed(1)}</div>
+                </div>
+                <div class="bg-[#1a1a1a] p-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-1">Netto</div>
+                    <div class="text-sm text-blue-400 font-mono font-bold">${netEarnings.toFixed(1)}</div>
                 </div>
             </div>
 
             ${!isOwned ? `
-                <button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-xs font-bold py-1.5 uppercase transition border border-[#333]" data-buy="${key}|${price}">Zakup Jednostkę</button>
+                <button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-sm font-bold py-2 uppercase transition border border-[#333]" data-buy="${key}|${price}">Zakup Jednostkę</button>
             ` : `
-                <div class="grid grid-cols-3 gap-1 mt-2 text-[10px] font-mono text-gray-400">
-                    <div class="col-span-2 flex items-center gap-2">
-                        <i class="ri-tools-line"></i> Zużycie: <span class="${(ownedData.wear||0) > 80 ? 'text-red-500' : 'text-white'}">${Math.round(ownedData.wear || 0)}%</span>
+                <div class="flex justify-between items-center mt-2 px-1">
+                    <div class="text-xs font-mono text-gray-400 flex items-center gap-2">
+                        <i class="ri-tools-line"></i> Stan techniczny: <span class="${(ownedData.wear||0) > 80 ? 'text-red-500 font-bold' : 'text-white'}">${100 - Math.round(ownedData.wear || 0)}%</span>
                     </div>
-                    <div class="text-right text-green-500 font-bold">+${fmt(ownedData.earned_vc || 0)} VC</div>
+                    <div class="h-1 w-24 bg-[#333] rounded-full overflow-hidden">
+                         <div class="h-full bg-${(ownedData.wear||0) > 80 ? 'red' : 'green'}-500" style="width: ${100 - (ownedData.wear||0)}%"></div>
+                    </div>
                 </div>
             `}
         `;
@@ -172,23 +181,22 @@ export function renderInfrastructure(container) {
 export function renderStationDetails(id, container) {
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
-    container.innerHTML = '<div class="text-center text-gray-600">Pobieranie danych satelitarnych...</div>';
     
-    // Symulacja danych, aby nie wywalało błędu przy braku API
-    if (state.stationData[id]) {
-        // Tutaj można przywrócić pełną logikę tabeli jeśli API działa
-        const earnings = state.infrastructure[type === 'train' ? 'trainStations' : 'busTerminals']?.[id]?.hourlyEarnings || 0;
-        container.innerHTML = `
-            <div class="flex justify-between text-gray-400 border-b border-[#333] pb-1 mb-1">
-                <span>Status Systemu</span>
-                <span class="text-green-500">ONLINE</span>
+    // Uproszczony widok szczegółów
+    const earnings = state.infrastructure[type === 'train' ? 'trainStations' : 'busTerminals']?.[id]?.hourlyEarnings || 0;
+    
+    container.innerHTML = `
+        <div class="grid grid-cols-2 gap-4 text-center">
+            <div>
+                <div class="text-[9px] text-gray-500 uppercase">Status</div>
+                <div class="text-green-500 font-bold">AKTYWNA</div>
             </div>
-            <div class="flex justify-between text-gray-400">
-                <span>Est. Przychód</span>
-                <span class="text-[#eab308]">+${fmt(earnings)} VC/h</span>
+            <div>
+                <div class="text-[9px] text-gray-500 uppercase">Est. Przychód</div>
+                <div class="text-[#eab308] font-bold font-mono">+${fmt(earnings)} VC/h</div>
             </div>
-        `;
-    }
+        </div>
+    `;
 }
 
 export function renderGuildTab(container) {
@@ -355,11 +363,11 @@ export function renderLootboxTab(container) {
     }
 }
 
-export function renderCompanyTab(container) { /* Skopiuj z poprzedniego pliku lub pozostaw placeholder */ }
-export function renderFriendsTab(container) { /* Skopiuj z poprzedniego pliku */ }
-export function renderTransactionHistory(container) { /* ... */ }
-export function renderMarket(container) { /* ... */ }
-export function renderRankings(container) { /* ... */ }
-export function renderCharts(container) { /* ... */ }
-export function renderEnergyPrices(container) { /* ... */ }
-export function renderAchievements(container) { /* ... */ }
+export function renderCompanyTab(container) { /* Placeholder */ }
+export function renderFriendsTab(container) { /* Placeholder */ }
+export function renderTransactionHistory(container) { /* Placeholder */ }
+export function renderMarket(container) { /* Placeholder */ }
+export function renderRankings(container) { /* Placeholder */ }
+export function renderCharts(container) { /* Placeholder */ }
+export function renderEnergyPrices(container) { /* Placeholder */ }
+export function renderAchievements(container) { /* Placeholder */ }

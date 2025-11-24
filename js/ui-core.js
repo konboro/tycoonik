@@ -1,4 +1,3 @@
-// js/ui-core.js - WERSJA Z POPRAWIONYM FILTREM MAPY I WALLET EXPORTEM
 import { state } from './state.js';
 import { config } from './config.js';
 import { map } from './state.js';
@@ -94,15 +93,27 @@ export function initMapFilters() {
     
     if (!typesContainer || !ownershipContainer) return;
 
-    const types = ['plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
+    // Dodano 'infrastructure' do listy filtrów
+    const types = ['infrastructure', 'plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
     
+    // Domyślnie włączamy infrastrukturę jeśli lista jest pusta (inicjalizacja)
+    if (!state.filters.types.includes('infrastructure')) {
+        state.filters.types.push('infrastructure');
+    }
+
     typesContainer.innerHTML = '';
     types.forEach(type => {
         const btn = document.createElement('button');
         btn.className = `w-10 h-10 bg-[#121212] border border-[#333] flex items-center justify-center text-xl shadow-lg transition-all hover:bg-[#222] map-type-filter`;
         btn.dataset.type = type;
-        btn.title = `Pokaż/Ukryj: ${type}`;
-        btn.innerHTML = getIconHtml(type, "w-6 h-6");
+        btn.title = type === 'infrastructure' ? 'Pokaż/Ukryj Infrastrukturę' : `Pokaż/Ukryj: ${type}`;
+        
+        // Specjalna ikona dla infrastruktury
+        if (type === 'infrastructure') {
+            btn.innerHTML = '<i class="ri-community-line"></i>';
+        } else {
+            btn.innerHTML = getIconHtml(type, "w-6 h-6");
+        }
         
         btn.addEventListener('click', () => {
             if (state.filters.types.includes(type)) { state.filters.types = state.filters.types.filter(t => t !== type); } 
@@ -123,7 +134,6 @@ export function initMapFilters() {
 }
 
 function updateMapFilterButtons() {
-    // Aktualizacja przycisków typów (Górny Prawy)
     document.querySelectorAll('.map-type-filter').forEach(btn => {
         const type = btn.dataset.type;
         if (state.filters.types.includes(type)) {
@@ -134,17 +144,13 @@ function updateMapFilterButtons() {
             btn.classList.add('opacity-50');
         }
     });
-
-    // Aktualizacja przycisków własności (Dolny Prawy) - POPRAWIONA LOGIKA
     document.querySelectorAll('[data-map-view]').forEach(btn => {
         if (btn.dataset.mapView === state.filters.mapView) {
-            // Stan AKTYWNY: Żółte tło, Czarny tekst
-            btn.classList.remove('bg-[#121212]', 'text-gray-400', 'border-[#333]', 'hover:text-white');
-            btn.classList.add('bg-[#eab308]', 'text-black', 'border-[#eab308]');
+            btn.classList.add('text-black', 'bg-[#eab308]', 'border-[#eab308]');
+            btn.classList.remove('text-gray-400', 'bg-[#121212]', 'border-[#333]');
         } else {
-            // Stan NIEAKTYWNY: Ciemne tło, Szary tekst
-            btn.classList.remove('bg-[#eab308]', 'text-black', 'border-[#eab308]');
-            btn.classList.add('bg-[#121212]', 'text-gray-400', 'border-[#333]', 'hover:text-white');
+            btn.classList.remove('text-black', 'bg-[#eab308]', 'border-[#eab308]');
+            btn.classList.add('text-gray-400', 'bg-[#121212]', 'border-[#333]');
         }
     });
 }
@@ -171,18 +177,19 @@ function createVehicleMarkerHtml(vehicle, isOwned) {
 export function redrawMap() {
     const visibleKeys = new Set();
     
+    // 1. Rysowanie Pojazdów
     Object.values(state.vehicles).forEach(vehicleMap => {
         for (const v of vehicleMap.values()) {
             const key = `${v.type}:${v.id}`;
             const isOwned = !!state.owned[key];
 
-            // 1. FILTR WŁASNOŚCI
+            // Filtr Własności
             if (state.filters.mapView === 'fleet' && !isOwned) continue;
 
-            // 2. FILTR TYPÓW
+            // Filtr Typów
             const typeMatch = state.filters.types.includes(v.type);
             
-            // 3. FILTR KRAJÓW
+            // Filtr Krajów (jeśli używany)
             const countryMatch = !v.country || state.filters.countries.includes(v.country);
 
             let entry = state.markers.get(key);
@@ -226,6 +233,7 @@ export function redrawMap() {
         }
     });
 
+    // Usuwanie markerów (pojazdy)
     for (const [key, entry] of state.markers.entries()) {
         if (!visibleKeys.has(key) && !key.startsWith('station:') && !key.startsWith('guildasset:')) {
             if(entry.marker) entry.marker.remove();
@@ -234,9 +242,24 @@ export function redrawMap() {
         }
     }
     
+    // 2. Rysowanie Infrastruktury (Stacje) - TERAZ FILTROWANE
+    // Sprawdzamy, czy filtr 'infrastructure' jest włączony
+    const showInfrastructure = state.filters.types.includes('infrastructure');
+
     for (const stationCode in config.infrastructure) {
-        const station = config.infrastructure[stationCode];
         const key = `station:${stationCode}`;
+        
+        // Jeśli filtr wyłączony -> usuń marker
+        if (!showInfrastructure) {
+            if (state.markers.has(key)) {
+                state.markers.get(key).marker.remove();
+                state.markers.delete(key);
+            }
+            continue; // Skip rysowania
+        }
+
+        // Jeśli włączony -> rysuj
+        const station = config.infrastructure[stationCode];
         if (station && !state.markers.has(key)) {
             const marker = L.marker([station.lat, station.lon], { 
                 icon: L.divIcon({ 
@@ -258,9 +281,20 @@ export function redrawMap() {
         }
     }
 
+    // 3. Rysowanie Budynków Gildii - TERAZ FILTROWANE
     for (const assetKey in config.guildAssets) {
-        const asset = config.guildAssets[assetKey];
         const key = `guildasset:${assetKey}`;
+
+        // Jeśli filtr wyłączony -> usuń marker
+        if (!showInfrastructure) {
+            if (state.markers.has(key)) {
+                state.markers.get(key).marker.remove();
+                state.markers.delete(key);
+            }
+            continue;
+        }
+
+        const asset = config.guildAssets[assetKey];
         let ownerGuildName = null;
         for (const guildId in state.guild.guilds) {
             if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) {
@@ -294,8 +328,6 @@ export function redrawMap() {
         }
     }
 }
-
-// ===== 3. GŁÓWNA AKTUALIZACJA UI (KPI) =====
 
 export function updateUI(inM, outM) {
     const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
@@ -366,7 +398,6 @@ export function updateUI(inM, outM) {
     setTxt('company-logo', state.profile.logo || '🏢');
 }
 
-// ===== TO JEST FUNKCJA, KTÓREJ BRAKOWAŁO =====
 export function forceUpdateWallet() {
     const walletEl = $('wallet');
     if (walletEl) {
