@@ -5,7 +5,7 @@ import { updateUI, render, forceUpdateWallet } from './ui-core.js';
 import { fetchTrainStationData, fetchTfLArrivals, fetchMbtaBusTerminalData, fetchCableCarStatus } from './api.js';
 import { supabase } from './supabase.js';
 
-// ===== GŁÓWNE CYKLE (TICKS) - POPRAWIONE =====
+// ===== GŁÓWNE CYKLE (TICKS) =====
 
 export function tickEconomy() {
     let inMin = 0, outMin = 0;
@@ -82,36 +82,14 @@ export function tickEconomy() {
         if (km > 0) { state.profile.km_total += km; state.profile.reputation[type] = (state.profile.reputation[type] || 0) + km; }
     }
 
-    // FIXED: Better earnings tracking for VC/h calculation
     if (!state.profile.earnings_history) state.profile.earnings_history = [];
-    
-    // Only add valid earnings (numbers that aren't NaN or Infinity)
     if (typeof currentTickEarnings === 'number' && isFinite(currentTickEarnings)) {
         state.profile.earnings_history.push(currentTickEarnings);
-        
-        // Keep last 60 minutes of data (60 ticks)
-        if (state.profile.earnings_history.length > 60) {
-            state.profile.earnings_history.shift();
-        }
-        
-        // Log earnings occasionally for debugging
-        if (currentTickEarnings > 0 && Math.random() < 0.1) {
-            console.log(`⏰ Tick earnings: ${fmt(currentTickEarnings)} VC (${Object.keys(state.owned).length} vehicles)`);
-        }
+        if (state.profile.earnings_history.length > 60) state.profile.earnings_history.shift();
     }
     
-    // Force immediate UI update when earnings change
     updateUI(inMin, outMin);
-    
-    // FORCE wallet update if there were earnings
-    if (currentTickEarnings !== 0) {
-        const walletEl = $('wallet');
-        if (walletEl) {
-            walletEl.textContent = fmt(state.wallet);
-            walletEl.style.color = currentTickEarnings > 0 ? '#22c55e' : '#ef4444';
-            setTimeout(() => { walletEl.style.color = ''; }, 300);
-        }
-    }
+    if (currentTickEarnings !== 0) forceUpdateWallet();
 }
 
 export function tickGuilds() {
@@ -129,8 +107,8 @@ export function tickGuilds() {
                 if (perMemberShare > 0) {
                     state.wallet += perMemberShare;
                     logTransaction(perMemberShare, `Dywidenda: ${guild.name}`);
-                    showNotification(`💰 Dywidenda: +${fmt(perMemberShare)} VC`);
-                    forceUpdateWallet(); // Force immediate wallet update
+                    // showNotification(`💰 Dywidenda: +${fmt(perMemberShare)} VC`); // Opcjonalne, żeby nie spamować
+                    forceUpdateWallet();
                 }
             }
         }
@@ -146,6 +124,210 @@ export const tickAllInfrastructure = () => {
     tickMbtaBusTerminals();
     tickCableCar();
 };
+
+// ===== LOGIKA INFRASTRUKTURY (ROZKŁADY JAZDY) =====
+
+async function tickTrainStations() { 
+    for (const stationCode in state.infrastructure.trainStations) { 
+        try { 
+            const station = state.infrastructure.trainStations[stationCode]; 
+            if (!station.owned) continue; 
+            const stationConfig = config.infrastructure[stationCode]; 
+            const proximityBonus = getProximityBonus(stationConfig.lat, stationConfig.lon, state.playerLocation); 
+            
+            // Pobieramy dane na żywo
+            const trains = await fetchTrainStationData(stationConfig.apiId); 
+            if (!Array.isArray(trains)) { state.stationData[stationCode] = []; continue; } 
+            state.stationData[stationCode] = trains; 
+            
+            let earningsThisTick = 0; 
+            let departures = 0; 
+            let arrivals = 0; 
+            
+            for (const train of trains) { 
+                // Klucz unikalny dla pociągu w danym dniu
+                const trainId = `${train.trainNumber}-${train.departureDate}`; 
+                
+                // Szukamy wpisu dla naszej stacji w rozkładzie pociągu
+                const stationRow = train.timeTableRows.find(row => row.stationShortCode === stationConfig.apiId); 
+                if (!stationRow) continue; 
+                
+                // Inicjalizacja loga dla tego pociągu
+                if (!state.trainLog[trainId]) { state.trainLog[trainId] = { departedPaid: false, arrivedPaid: false }; } 
+                
+                // Logika opóźnień
+                let penaltyFactor = 1.0;
+                let delayMinutes = 0;
+                
+                if (stationRow.actualTime && stationRow.scheduledTime) {
+                    const actual = new Date(stationRow.actualTime);
+                    const scheduled = new Date(stationRow.scheduledTime);
+                    delayMinutes = Math.round((actual - scheduled) / 60000);
+                    
+                    // Jeśli opóźnienie > 3 minuty, kara -50%
+                    if (delayMinutes > 3) penaltyFactor = 0.5;
+                }
+
+                const baseEarning = 150 * proximityBonus * penaltyFactor; 
+
+                // PŁATNOŚĆ ZA ODJAZD (DEPARTURE)
+                if (stationRow.type === 'DEPARTURE' && stationRow.actualTime && !state.trainLog[trainId].departedPaid) { 
+                    // Sprawdzamy czy to się stało "niedawno" (w ciągu ostatnich 15 min), żeby nie płacić za stare
+                    const timeDiff = (Date.now() - new Date(stationRow.actualTime).getTime()) / 60000;
+                    if (timeDiff >= 0 && timeDiff < 15) {
+                        state.wallet += baseEarning; 
+                        earningsThisTick += baseEarning; 
+                        departures++; 
+                        station.departures++; 
+                        state.trainLog[trainId].departedPaid = true;
+                        
+                        // Powiadomienie o opóźnieniu
+                        if (delayMinutes > 3) {
+                            showNotification(`Pociąg ${train.trainType}${train.trainNumber} opóźniony (+${delayMinutes} min): +${fmt(baseEarning)} VC`, true);
+                        } else {
+                            showNotification(`Pociąg ${train.trainType}${train.trainNumber} odjechał punktualnie: +${fmt(baseEarning)} VC`);
+                        }
+                    }
+                } 
+                
+                // PŁATNOŚĆ ZA PRZYJAZD (ARRIVAL)
+                if (stationRow.type === 'ARRIVAL' && stationRow.actualTime && !state.trainLog[trainId].arrivedPaid) { 
+                    const timeDiff = (Date.now() - new Date(stationRow.actualTime).getTime()) / 60000;
+                    if (timeDiff >= 0 && timeDiff < 15) {
+                        state.wallet += baseEarning; 
+                        earningsThisTick += baseEarning; 
+                        arrivals++; 
+                        station.arrivals++; 
+                        state.trainLog[trainId].arrivedPaid = true;
+                        
+                        if (delayMinutes > 3) {
+                            showNotification(`Pociąg ${train.trainType}${train.trainNumber} przybył z opóźnieniem (+${delayMinutes} min): +${fmt(baseEarning)} VC`, true);
+                        } else {
+                            showNotification(`Pociąg ${train.trainType}${train.trainNumber} przybył o czasie: +${fmt(baseEarning)} VC`);
+                        }
+                    }
+                } 
+            } 
+            
+            // Estymacja godzinowa (uproszczona)
+            station.hourlyEarnings = (station.hourlyEarnings * 0.9) + (earningsThisTick * 10 * 0.1); 
+            
+            if (earningsThisTick > 0) { 
+                station.totalEarnings += earningsThisTick; 
+                state.profile.total_earned += earningsThisTick; 
+                
+                if (!station.earningsLog) station.earningsLog = []; 
+                station.earningsLog.push({ timestamp: Date.now(), profit: earningsThisTick, arrivals, departures }); 
+                
+                forceUpdateWallet(); 
+                if (state.activeTab === 'stations') render();
+            } 
+        } catch (error) { console.error("Błąd stacji:", error); } 
+    } 
+}
+
+async function tickTfLStation(cat, base, log, icon) { 
+    for (const code in state.infrastructure[cat]) { 
+        try { 
+            const s = state.infrastructure[cat][code]; 
+            if (!s.owned) continue; 
+            const conf = config.infrastructure[code]; 
+            if (conf.apiId.startsWith('place-')) continue; 
+            const bonus = getProximityBonus(conf.lat, conf.lon, state.playerLocation); 
+            const data = await fetchTfLArrivals(conf.apiId); 
+            
+            // Zapisujemy dane do wyświetlania
+            state.stationData[code] = { data: Array.isArray(data) ? data : [] }; 
+            
+            let earn = 0; 
+            // Sortujemy po czasie do przyjazdu
+            const arrivals = (state.stationData[code].data).sort((a,b) => a.timeToStation - b.timeToStation);
+            
+            for (const a of arrivals) { 
+                const id = a.id; // Unikalny ID przyjazdu z API TfL
+                
+                // Jeśli czas do przyjazdu < 1 minuta (przyjechał) i nie był płacony
+                if (a.timeToStation < 60 && !log[id]) { 
+                    const e = base * bonus; 
+                    state.wallet += e; 
+                    earn += e; 
+                    s.arrivals++; 
+                    log[id] = { paid: true, ts: Date.now() }; 
+                    
+                    showNotification(`${icon} ${a.lineName} przybył na ${conf.name}: +${fmt(e)} VC`);
+                } 
+            } 
+            
+            if (earn > 0) { 
+                s.totalEarnings += earn; 
+                state.profile.total_earned += earn; 
+                forceUpdateWallet(); 
+                if (state.activeTab === 'stations') render();
+            } 
+        } catch (e) {} 
+    } 
+    // Czyszczenie starych logów
+    const now=Date.now(); 
+    for(const k in log) if(now-log[k].ts > 1800000) delete log[k]; 
+}
+
+async function tickMbtaBusTerminals() { 
+    for (const code in state.infrastructure.busTerminals) { 
+        const conf = config.infrastructure[code]; 
+        if (!conf.apiId.startsWith('place-')) continue; 
+        try { 
+            const s = state.infrastructure.busTerminals[code]; 
+            if (!s.owned) continue; 
+            const bonus = getProximityBonus(conf.lat, conf.lon, state.playerLocation); 
+            const data = await fetchMbtaBusTerminalData(conf.apiId); 
+            state.stationData[code] = data; 
+            let earn = 0; 
+            if (data?.data) { 
+                for (const p of data.data) { 
+                    const id = p.id; 
+                    // Sprawdź czy przyjazd jest "teraz" (zazwyczaj departure_time lub arrival_time w ISO)
+                    const arrivalTime = p.attributes?.arrival_time;
+                    if (arrivalTime && !state.busLog[id]) {
+                        const diff = (new Date(arrivalTime) - new Date()) / 1000;
+                        if (diff < 60 && diff > -60) { // Okno +/- 1 min
+                            const e = 25 * bonus; 
+                            state.wallet += e; 
+                            earn += e; 
+                            s.arrivals++; 
+                            state.busLog[id] = { paid: true, ts: Date.now() };
+                            showNotification(`🚏 Autobus przybył na ${conf.name}: +${fmt(e)} VC`);
+                        }
+                    }
+                } 
+            } 
+            if (earn > 0) { 
+                s.totalEarnings += earn; 
+                state.profile.total_earned += earn; 
+                forceUpdateWallet(); 
+                if (state.activeTab === 'stations') render();
+            } 
+        } catch (e) {} 
+    } 
+}
+
+async function tickCableCar() { 
+    try { 
+        const s = state.infrastructure.cableCar.LCC; 
+        if (!s.owned) return; 
+        const conf = config.infrastructure.LCC; 
+        const bonus = getProximityBonus(conf.lat, conf.lon, state.playerLocation); 
+        const data = await fetchCableCarStatus(conf.apiId); 
+        const active = data?.lineStatuses?.[0]?.statusSeverityDescription === 'Good Service'; 
+        if (active) { 
+            const e = 5000 * 1.5 * bonus; // Stały dochód za działanie
+            state.wallet += e; 
+            s.totalEarnings += e; 
+            state.profile.total_earned += e; 
+            // showNotification(`🚠 ${conf.name} operuje sprawnie: +${fmt(e)} VC`); // Opcjonalne
+            forceUpdateWallet(); 
+        } 
+    } catch (e) {} 
+}
 
 // ===== FUNKCJE POMOCNICZE (LOGIKA GRY) =====
 
@@ -192,144 +374,4 @@ export function updateRankings() {
     }; 
     state.rankings.assetValue = updateList(state.rankings.assetValue, 'assetValue'); 
     state.rankings.weeklyEarnings = updateList(state.rankings.weeklyEarnings, 'weeklyEarnings'); 
-}
-
-// ===== LOGIKA INFRASTRUKTURY (BEZ ZMIAN) =====
-
-async function tickTrainStations() { 
-    for (const stationCode in state.infrastructure.trainStations) { 
-        try { 
-            const station = state.infrastructure.trainStations[stationCode]; 
-            if (!station.owned) continue; 
-            const stationConfig = config.infrastructure[stationCode]; 
-            const proximityBonus = getProximityBonus(stationConfig.lat, stationConfig.lon, state.playerLocation); 
-            const trains = await fetchTrainStationData(stationConfig.apiId); 
-            
-            if (!Array.isArray(trains)) { state.stationData[stationCode] = []; continue; } 
-            state.stationData[stationCode] = trains; 
-            
-            let earningsThisTick = 0; let departures = 0; let arrivals = 0; 
-            for (const train of trains) { 
-                const trainId = `${train.trainNumber}-${train.departureDate}`; 
-                const stationData = train.timeTableRows.find(row => row.stationShortCode === stationConfig.apiId); 
-                if (!stationData) continue; 
-                
-                if (!state.trainLog[trainId]) { state.trainLog[trainId] = { departedPaid: false, arrivedPaid: false }; } 
-                let penaltyFactor = 1.0;
-                if (stationData.actualTime && stationData.scheduledTime) {
-                    const delay = (new Date(stationData.actualTime) - new Date(stationData.scheduledTime)) / 60000;
-                    if (delay > 5) penaltyFactor = 0.8;
-                }
-                const baseEarning = 100 * proximityBonus * penaltyFactor; 
-
-                if (stationData.type === 'DEPARTURE' && stationData.actualTime && !state.trainLog[trainId].departedPaid) { 
-                    state.wallet += baseEarning; earningsThisTick += baseEarning; departures++; station.departures++; state.trainLog[trainId].departedPaid = true; 
-                } 
-                if (stationData.type === 'ARRIVAL' && stationData.actualTime && !state.trainLog[trainId].arrivedPaid) { 
-                    state.wallet += baseEarning; earningsThisTick += baseEarning; arrivals++; station.arrivals++; state.trainLog[trainId].arrivedPaid = true; 
-                } 
-            } 
-            station.hourlyEarnings = earningsThisTick * 40; 
-            if (earningsThisTick > 0) { 
-                station.totalEarnings += earningsThisTick; 
-                state.profile.total_earned += earningsThisTick; 
-                if (!station.earningsLog) station.earningsLog = []; 
-                station.earningsLog.push({ timestamp: Date.now(), profit: earningsThisTick, arrivals, departures }); 
-                showNotification(`🏛️ ${stationConfig.name}: +${fmt(earningsThisTick)} VC`); 
-                updateUI();
-                forceUpdateWallet(); // Force immediate wallet update
-            } 
-        } catch (error) { } 
-    } 
-}
-
-async function tickTfLStation(cat, base, log, icon) { 
-    for (const code in state.infrastructure[cat]) { 
-        try { 
-            const s = state.infrastructure[cat][code]; 
-            if (!s.owned) continue; 
-            const conf = config.infrastructure[code]; 
-            if (conf.apiId.startsWith('place-')) continue; 
-            const bonus = getProximityBonus(conf.lat, conf.lon, state.playerLocation); 
-            const data = await fetchTfLArrivals(conf.apiId); 
-            state.stationData[code] = { data: Array.isArray(data) ? data : [] }; 
-            let earn = 0; 
-            for (const a of (state.stationData[code].data)) { 
-                const id = a.id; 
-                if (!log[id]) { 
-                    const e = base * bonus; 
-                    state.wallet += e; 
-                    earn += e; 
-                    s.arrivals++; 
-                    log[id] = { paid: true, ts: Date.now() }; 
-                } 
-            } 
-            s.hourlyEarnings = earn * 40; 
-            if (earn > 0) { 
-                s.totalEarnings += earn; 
-                state.profile.total_earned += earn; 
-                showNotification(`${icon} ${conf.name}: +${fmt(earn)} VC`); 
-                updateUI();
-                forceUpdateWallet(); // Force immediate wallet update
-            } 
-        } catch (e) {} 
-    } 
-    const now=Date.now(); 
-    for(const k in log) if(now-log[k].ts > 1800000) delete log[k]; 
-}
-
-async function tickMbtaBusTerminals() { 
-    for (const code in state.infrastructure.busTerminals) { 
-        const conf = config.infrastructure[code]; 
-        if (!conf.apiId.startsWith('place-')) continue; 
-        try { 
-            const s = state.infrastructure.busTerminals[code]; 
-            if (!s.owned) continue; 
-            const bonus = getProximityBonus(conf.lat, conf.lon, state.playerLocation); 
-            const data = await fetchMbtaBusTerminalData(conf.apiId); 
-            state.stationData[code] = data; 
-            let earn = 0; 
-            if (data?.data) { 
-                for (const p of data.data) { 
-                    const id = p.id; 
-                    if (!state.busLog[id]) { 
-                        const e = 25 * bonus; 
-                        state.wallet += e; 
-                        earn += e; 
-                        s.arrivals++; 
-                        state.busLog[id] = { paid: true, ts: Date.now() }; 
-                    } 
-                } 
-            } 
-            s.hourlyEarnings = earn * 40; 
-            if (earn > 0) { 
-                s.totalEarnings += earn; 
-                state.profile.total_earned += earn; 
-                showNotification(`🚏 ${conf.name}: +${fmt(earn)} VC`); 
-                updateUI();
-                forceUpdateWallet(); // Force immediate wallet update
-            } 
-        } catch (e) {} 
-    } 
-}
-
-async function tickCableCar() { 
-    try { 
-        const s = state.infrastructure.cableCar.LCC; 
-        if (!s.owned) return; 
-        const conf = config.infrastructure.LCC; 
-        const bonus = getProximityBonus(conf.lat, conf.lon, state.playerLocation); 
-        const data = await fetchCableCarStatus(conf.apiId); 
-        const active = data?.lineStatuses?.[0]?.statusSeverityDescription === 'Good Service'; 
-        if (active) { 
-            const e = 5000 * 1.5 * bonus; 
-            state.wallet += e; 
-            s.totalEarnings += e; 
-            state.profile.total_earned += e; 
-            showNotification(`🚠 ${conf.name}: +${fmt(e)} VC`); 
-            updateUI();
-            forceUpdateWallet(); // Force immediate wallet update
-        } 
-        s.hourlyEarnings = active ? 5000 * 60 * bonus : 0; 
-    } catch (e) {} 
 }
