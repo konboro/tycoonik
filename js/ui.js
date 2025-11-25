@@ -34,7 +34,6 @@ export function setupEventListeners() {
     if(controls) {
         controls.addEventListener('click', e => { 
             if (e.target.id === 'refreshAll') { 
-                // Trigger manual refresh
                 import('./api-server.js').then(m => {
                     m.forceRefreshVehicles().then(() => {
                         m.fetchAllVehicles().then(() => render());
@@ -81,7 +80,6 @@ export function setupEventListeners() {
                     if (error) { showNotification(error.message, true); return; }
                     if (data.success) {
                         state.wallet = data.new_wallet;
-                        // Update local state
                         let found = false;
                         for (const cat in state.infrastructure) { 
                             if(state.infrastructure[cat][id]) {
@@ -89,7 +87,8 @@ export function setupEventListeners() {
                                 found = true;
                             }
                         }
-                        updateUI(); render(); 
+                        updateUI(); 
+                        render(); // Ważne: Przeładowanie, żeby zniknęło z listy do kupienia
                         showNotification("Zakupiono nieruchomość!");
                     } else { showNotification(data.message, true); }
                 } else { showNotification('Za mało środków!', true); } 
@@ -97,7 +96,6 @@ export function setupEventListeners() {
             return; 
         }
 
-        // 3. Otwieranie Skrzynek
         const openBoxTarget = e.target.closest('[data-open-box]'); 
         if (openBoxTarget) { 
             e.stopPropagation(); 
@@ -105,7 +103,6 @@ export function setupEventListeners() {
             return; 
         }
 
-        // 4. Obsługa Gildii
         if (e.target.id === 'create-guild-btn') {
             const name = $('guild-name-input').value;
             if(name && state.wallet >= config.guilds.creationCost) {
@@ -117,24 +114,13 @@ export function setupEventListeners() {
             }
         }
         
-        // ... (Reszta obsługi: join guild, treasury, chat - standardowe) ...
-        
-        // 5. Obsługa Kart Pojazdów (Klik w liście)
         const vehicleItem = e.target.closest('[data-key]'); 
         if (vehicleItem && !e.target.closest('button')) { 
             state.selectedVehicleKey = vehicleItem.dataset.key; 
             render(); 
         }
-        
-        // 6. Obsługa Stacji (Klik w liście)
-        const stationItem = e.target.closest('[data-station-id]');
-        if (stationItem && !e.target.closest('button')) {
-            // Kliknięcie w stację w liście (jeśli nie w przycisk)
-            // Logika jest teraz inline w rendererze (onclick), ale to jest fallback
-        }
     });
 
-    // Vehicle Card Actions
     const card = $('vehicle-card');
     if (card) {
         card.addEventListener('click', e => {
@@ -143,11 +129,94 @@ export function setupEventListeners() {
             const key = state.selectedVehicleKey;
             
             if (target.id === 'close-card-btn') { state.selectedVehicleKey = null; render(); }
-            // ... (upgrade, sell logic from previous versions) ...
+            if (target.id === 'edit-vehicle-name-btn') { 
+                const ownedData = state.owned[key];
+                if (!ownedData) return;
+                const newName = prompt(`Nowa nazwa:`, ownedData.customName);
+                if (newName && newName.trim() !== "") { ownedData.customName = newName.trim(); render(); }
+            }
+            if (target.id === 'upgrade-btn') { 
+                const ownedData = state.owned[key];
+                if (!ownedData || (ownedData.level || 1) >= 5) return;
+                const nextLevelIndex = ownedData.level || 1;
+                const cost = config.upgrade.costs[nextLevelIndex];
+                if (state.wallet >= cost) {
+                    state.wallet -= cost;
+                    logTransaction(-cost, `Ulepszenie: ${ownedData.customName}`);
+                    ownedData.level = (ownedData.level || 1) + 1;
+                    state.profile.upgrades_done++;
+                    updateUI(); render();
+                } else { showNotification("Brak środków!", true); }
+            }
+            if (target.id === 'sell-quick-btn') { 
+                const vehicle = state.owned[key];
+                if (!vehicle) return;
+                const basePrice = config.basePrice[vehicle.type] || 0;
+                const sellPrice = Math.round(basePrice * 0.40);
+                showConfirm(`Sprzedać ${vehicle.customName || vehicle.title} za ${fmt(sellPrice)} VC?`, () => {
+                    state.wallet += sellPrice;
+                    logTransaction(sellPrice, `Szybka sprzedaż: ${vehicle.customName || vehicle.title}`);
+                    delete state.owned[key];
+                    state.selectedVehicleKey = null;
+                    updateUI(); render();
+                    (async () => {
+                        const user = (await supabase.auth.getUser()).data.user;
+                        if(user) {
+                           await supabase.from('vehicles').delete().eq('vehicle_api_id', vehicle.id).eq('owner_id', user.id);
+                           await supabase.from('profiles').update({ wallet: state.wallet }).eq('id', user.id);
+                        }
+                    })();
+                    showNotification(`Sprzedano za ${fmt(sellPrice)} VC.`);
+                });
+            }
+            if (target.id === 'sell-market-btn') { 
+                const vehicle = state.owned[key];
+                if (!vehicle) return;
+                const modal = $('sell-modal');
+                const basePrice = config.basePrice[vehicle.type] || 0;
+                $('sell-modal-text').textContent = `Wystawiasz: ${vehicle.customName || vehicle.title}`;
+                const priceInput = $('sell-price');
+                priceInput.value = basePrice;
+                const infoEl = $('sell-modal-info');
+                const updateConf = () => {
+                    const price = parseInt(priceInput.value) || 0;
+                    const commission = Math.round(price * 0.05);
+                    infoEl.innerHTML = `Prowizja (5%): ${fmt(commission)} VC<br>Otrzymasz: ${fmt(price - commission)} VC`;
+                };
+                priceInput.addEventListener('input', updateConf);
+                updateConf();
+                modal.style.display = 'flex';
+                const confirmBtn = $('confirm-sell-btn');
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                newConfirmBtn.onclick = () => {
+                    const price = parseInt(priceInput.value);
+                    if (isNaN(price) || price <= 0) { showNotification("Błędna cena.", true); return; }
+                    const commission = Math.round(price * 0.05);
+                    state.wallet -= commission;
+                    logTransaction(-commission, `Prowizja: ${vehicle.customName}`);
+                    const durationHours = parseInt($('sell-duration').value);
+                    state.marketListings.push({ vehicle: { ...vehicle }, price: price, expiresAt: new Date(Date.now() + durationHours * 3600000).toISOString(), seller: state.profile.companyName });
+                    delete state.owned[key];
+                    state.selectedVehicleKey = null;
+                    showNotification(`Wystawiono na giełdę.`);
+                    render();
+                    modal.style.display = 'none';
+                };
+            }
+            if (target.dataset.svc) { 
+                const owned = state.owned[target.dataset.svc]; 
+                if(owned) { 
+                    const cost = Math.round((owned.wear || 0) * (config.basePrice[owned.type] / 200));
+                    showConfirm(`Serwis ${fmt(cost)} VC?`, () => {
+                        if (state.wallet < cost) { showNotification("Brak środków!", true); return; }
+                        state.wallet -= cost; owned.wear = 0; state.profile.services_done++; render(); 
+                    });
+                } 
+            }
         });
     }
     
-    // Modals
     $('close-prize-modal').addEventListener('click', () => $('lootbox-prize-modal').style.display = 'none');
     $('cancel-sell-btn').addEventListener('click', () => $('sell-modal').style.display = 'none');
     $('close-asset-details-modal').addEventListener('click', () => $('asset-details-modal').style.display = 'none');
