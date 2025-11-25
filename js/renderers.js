@@ -140,8 +140,6 @@ export function renderVehicleList(container) {
     });
 }
 
-// ===== INFRASTRUKTURA I NIERUCHOMOŚCI =====
-
 // 1. POSIADANA INFRASTRUKTURA (ZAWSZE ROZWINIĘTE)
 export function renderInfrastructure(container) {
     let count = 0;
@@ -173,7 +171,7 @@ export function renderInfrastructure(container) {
             </div>
         `;
         
-        // AUTOMATYCZNE RENDEROWANIE SZCZEGÓŁÓW (TABLICA) DLA KAŻDEJ POSIADANEJ STACJI
+        // AUTOMATYCZNE RENDEROWANIE SZCZEGÓŁÓW
         const det = document.createElement('div'); 
         det.className = 'bg-black border border-[#333] text-xs font-mono animate-fade-in p-2'; 
         renderStationDetails(id, det); 
@@ -219,7 +217,7 @@ export function renderRealEstateMarket(container) {
     if (count === 0) renderEmptyState(container, "WSZYSTKIE NIERUCHOMOŚCI ZAKUPIONE");
 }
 
-// 3. SZCZEGÓŁY STACJI
+// 3. SZCZEGÓŁY STACJI (ROZKŁAD JAZDY)
 export function renderStationDetails(id, container) {
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
@@ -328,7 +326,6 @@ export function renderStationDetails(id, container) {
     container.innerHTML += tableHtml;
 }
 
-// ===== FUNKCJA RENDERUJĄCA GILDIE (BRAKOWAŁO JEJ!) =====
 export function renderGuildTab(container) {
     const { playerGuildId, guilds } = state.guild;
     if (!playerGuildId) {
@@ -341,6 +338,27 @@ export function renderGuildTab(container) {
         const ownedDiv = document.getElementById('guild-owned-list');
         if(ownedDiv) { for(const k in myGuild.ownedAssets) { const a = config.guildAssets[k]; ownedDiv.innerHTML += `<div class="bg-[#151515] border border-[#333] p-2 flex justify-between items-center"><div class="flex items-center gap-2"><i class="ri-government-line text-gray-500"></i><div><div class="font-bold text-white text-xs uppercase">${a.name}</div><div class="text-[10px] text-green-500 font-mono">+${fmt(a.incomePerTick)}/min</div></div></div></div>`; } }
     }
+}
+
+export function renderVehicleCard(key) {
+    const [type, ...idParts] = key.split(':'); const id = idParts.join(':');
+    const isOwned = !!state.owned[key];
+    const baseData = isOwned ? state.owned[key] : state.vehicles[type]?.get(id);
+    if (!baseData) { $('vehicle-card').classList.add('translate-y-[150%]'); return; }
+    const v = { ...baseData, ...(state.vehicles[type]?.get(id) || {}) };
+    const eco = getVehicleEcoSpecs(type);
+    const container = document.getElementById('vehicle-card-content');
+    
+    let locationDisplay = '';
+    if (type === 'plane') {
+        locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL';
+    } else {
+        const flag = FLAGS[v.country] || '🏳️';
+        locationDisplay = `${flag} ${v.country || 'Nieznany'}`;
+    }
+
+    container.innerHTML = `<div class="grid grid-cols-3 gap-6"><div class="col-span-1 flex flex-col gap-2"><div class="aspect-square bg-black border border-[#333] flex items-center justify-center relative group"><div class="text-6xl scale-125 transition-transform group-hover:scale-110">${getIconHtml(type)}</div><div class="absolute top-2 right-2 text-[10px] font-bold text-gray-500 border border-gray-800 bg-black px-1 uppercase">${type}</div></div><div class="text-center"><div class="text-[10px] text-gray-500 font-bold uppercase">Wartość</div><div class="text-lg font-mono font-bold text-[#eab308]">${fmt(config.basePrice[type])} VC</div></div></div><div class="col-span-2 flex flex-col justify-between"><div><h2 class="font-header text-2xl text-white leading-none mb-1 uppercase">${isOwned ? v.customName : v.title}</h2><div class="text-xs text-gray-500 font-mono mb-4 uppercase">ID: ${v.id} • ${locationDisplay}</div><div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm font-mono"><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Paliwo</span><span class="text-white">${eco.fuel}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Emisja</span><span class="text-white">${eco.co2}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Zużycie</span><span class="text-white">${isOwned ? Math.round(v.wear) + '%' : '0%'}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Przebieg</span><span class="text-white">${isOwned ? fmt(v.odo_km) : '0'} km</span></div></div></div><div class="flex gap-2 mt-4">${isOwned ? `<button class="flex-1 btn-action py-2" id="upgrade-btn">Ulepsz</button><button class="flex-1 btn-cancel py-2 border border-[#333]" data-svc="${key}">Serwis</button><button class="px-3 btn-cancel py-2 border border-[#333] text-red-500 hover:bg-red-900/20" id="sell-quick-btn"><i class="ri-delete-bin-line"></i></button><button class="px-3 btn-cancel py-2 border border-[#333] text-blue-500 hover:bg-blue-900/20" id="sell-market-btn"><i class="ri-auction-line"></i></button>` : `<button class="w-full btn-action py-2" data-buy="${key}|${config.basePrice[type]}">ZAKUP JEDNOSTKĘ</button>`}</div></div></div>`;
+    document.getElementById('vehicle-card').classList.remove('translate-y-[150%]');
 }
 
 export function renderLootboxTab(container) {
