@@ -139,8 +139,6 @@ export function renderVehicleList(container) {
     });
 }
 
-// ===== INFRASTRUKTURA I NIERUCHOMOŚCI =====
-
 // 1. POSIADANA INFRASTRUKTURA
 export function renderInfrastructure(container) {
     let count = 0;
@@ -153,14 +151,23 @@ export function renderInfrastructure(container) {
         count++;
         
         const el = document.createElement('div'); 
-        el.className = `bg-[#1a1a1a] border-l-2 border-[#eab308] p-3 mb-2 flex flex-col gap-2 hover:bg-[#222] transition border-b border-r border-t border-[#333]`;
+        el.className = `bg-[#1a1a1a] border-l-2 border-[#eab308] p-3 mb-2 flex flex-col gap-2 hover:bg-[#222] transition border-b border-r border-t border-[#333] cursor-pointer`;
         el.dataset.stationId = id;
+        
+        el.onclick = () => {
+            if(state.selectedStationId === id) state.selectedStationId = null;
+            else state.selectedStationId = id;
+            const mainList = document.getElementById('mainList');
+            if (mainList) {
+                import('./ui-core.js').then(m => m.render());
+            }
+        };
         
         const flag = FLAGS[conf.country] || '🏳️';
         const locationDisplay = `${flag} ${conf.country || 'Global'}`;
 
         el.innerHTML = `
-            <div class="flex items-center gap-3 cursor-pointer" onclick="toggleStationDetails('${id}')">
+            <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-black flex items-center justify-center text-xl text-gray-400">${getIconHtml('station_'+conf.type)}</div>
                 <div class="flex-grow">
                     <h4 class="font-bold text-white font-header uppercase text-sm">${conf.name}</h4>
@@ -174,7 +181,6 @@ export function renderInfrastructure(container) {
         `;
         container.appendChild(el);
         
-        // Kontener na szczegóły (rozkład jazdy)
         if (id === state.selectedStationId) { 
             const det = document.createElement('div'); 
             det.className = 'mt-2 p-2 bg-black border border-[#333] border-t-0 mb-2 text-xs font-mono animate-fade-in'; 
@@ -185,16 +191,6 @@ export function renderInfrastructure(container) {
     
     if (count === 0) renderEmptyState(container, "BRAK ZAKUPIONEJ INFRASTRUKTURY");
 }
-
-// Helper do przełączania (musi być globalny lub obsłużony w ui.js, tutaj robimy inline onclick hack dla uproszczenia renderera)
-window.toggleStationDetails = (id) => {
-    state.selectedStationId = state.selectedStationId === id ? null : id;
-    // Wymuś przerysowanie tylko tego panelu, nie całej aplikacji
-    const container = document.getElementById('mainList');
-    if (container) {
-        import('./ui-core.js').then(m => m.render());
-    }
-};
 
 // 2. RYNEK NIERUCHOMOŚCI (DO KUPNA)
 export function renderRealEstateMarket(container) {
@@ -230,7 +226,7 @@ export function renderRealEstateMarket(container) {
     if (count === 0) renderEmptyState(container, "WSZYSTKIE NIERUCHOMOŚCI ZAKUPIONE");
 }
 
-// 3. SZCZEGÓŁY STACJI (ROZKŁAD JAZDY - PRZYWRÓCONY)
+// 3. SZCZEGÓŁY STACJI
 export function renderStationDetails(id, container) {
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
@@ -244,8 +240,7 @@ export function renderStationDetails(id, container) {
 
     const data = state.stationData[id];
     
-    // Jeśli brak danych lub pusta tablica
-    if (!data || (Array.isArray(data) && data.length === 0) || (data.data && data.data.length === 0)) {
+    if (!data || (Array.isArray(data) && data.length === 0)) {
         const earnings = state.infrastructure[type === 'train' ? 'trainStations' : (type==='tube'?'tubeStations':(type==='river-bus'?'riverPiers':'busTerminals'))]?.[id]?.hourlyEarnings || 0;
         container.innerHTML += `
             <div class="text-center text-gray-600 text-xs font-mono p-4">BRAK DANYCH ROZKŁADOWYCH</div>
@@ -268,7 +263,6 @@ export function renderStationDetails(id, container) {
         </thead>
         <tbody class="text-gray-300">`;
 
-    // LOGIKA DLA POCIĄGÓW (Digitraffic)
     if (type === 'train' && Array.isArray(data)) {
         const rows = data.slice(0, 8);
         rows.forEach(t => {
@@ -288,13 +282,13 @@ export function renderStationDetails(id, container) {
             if (actual) {
                 actTime = actual.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
                 const delay = (actual - scheduled) / 60000;
-                if (delay > 3) timeClass = 'text-red-500 font-bold'; // Spóźniony
-                else if (delay < -1) timeClass = 'text-blue-400'; // Przed czasem
-                else timeClass = 'text-green-500'; // O czasie
+                if (delay > 3) timeClass = 'text-red-500 font-bold';
+                else if (delay < -1) timeClass = 'text-blue-400';
+                else timeClass = 'text-green-500';
             } else if (rowData.liveEstimateTime) {
                  const est = new Date(rowData.liveEstimateTime);
                  actTime = est.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
-                 timeClass = 'text-yellow-600 italic'; // Estymacja
+                 timeClass = 'text-yellow-600 italic';
             }
 
             tableHtml += `
@@ -307,13 +301,11 @@ export function renderStationDetails(id, container) {
             `;
         });
     } 
-    // LOGIKA DLA TFL (Metro/Bus)
     else if ((type === 'tube' || type === 'bus' || type === 'river-bus') && data.data) {
         const arrivals = data.data.sort((a,b) => a.timeToStation - b.timeToStation).slice(0, 8);
         arrivals.forEach(a => {
             const min = Math.floor(a.timeToStation / 60);
             const timeDisplay = min === 0 ? 'TERAZ' : `${min} min`;
-            
             let statusClass = 'text-green-500';
             if (min > 5) statusClass = 'text-gray-300';
             if (min === 0) statusClass = 'text-[#eab308] font-bold animate-pulse';
@@ -343,7 +335,41 @@ export function renderStationDetails(id, container) {
     container.innerHTML += tableHtml;
 }
 
-// ... (Pozostałe funkcje: renderGuildTab, renderVehicleCard, renderLootboxTab, renderRankings, renderMarket, renderCharts, renderStats, renderEnergyPrices, renderTransactionHistory, renderCompanyTab, renderFriendsTab, renderAchievements - BEZ ZMIAN, ale muszą być w pliku!) ...
+export function renderGuildTab(container) {
+    const { playerGuildId, guilds } = state.guild;
+    
+    if (!playerGuildId) {
+        container.innerHTML = `<div class="p-4 space-y-6"><div class="bg-[#1a1a1a] border border-[#333] p-4"><h3 class="text-lg font-bold text-[#eab308] font-header uppercase mb-2">Rejestracja Gildii</h3><p class="text-xs text-gray-500 mb-4">Utwórz nową organizację handlową.</p><input type="text" id="guild-name-input" placeholder="NAZWA KORPORACJI..." class="w-full bg-black border border-[#333] text-white p-2 text-sm font-mono mb-2 focus:border-[#eab308] outline-none"><button id="create-guild-btn" class="w-full btn-action py-2 text-sm">Utwórz (${fmt(config.guilds.creationCost)} VC)</button></div><div><h3 class="text-xs font-bold text-gray-500 uppercase mb-2 tracking-widest">Dostępne Gildie</h3><div id="guild-list" class="space-y-2"></div></div></div>`;
+        const list = document.getElementById('guild-list');
+        if(list) { for (const gid in guilds) { const g = guilds[gid]; list.innerHTML += `<div class="flex justify-between items-center bg-[#151515] p-3 border border-[#333]"><span class="text-white font-header text-sm">${g.name} <span class="text-gray-600 text-xs">(${g.members.length} os.)</span></span><button class="text-[#eab308] hover:text-white text-xs font-bold uppercase border border-[#eab308] px-2 py-1 hover:bg-[#eab308] hover:text-black transition" data-join-guild="${gid}">Dołącz</button></div>`; } }
+    } else {
+        const myGuild = guilds[playerGuildId]; if(!myGuild) return;
+        container.innerHTML = `<div class="p-4 flex flex-col h-full"><div class="bg-[#1a1a1a] p-4 border border-[#333] border-l-4 border-l-[#eab308] mb-4"><h2 class="text-2xl font-bold text-white font-header">${myGuild.name}</h2><div class="flex justify-between items-end mt-2"><div class="text-xs text-gray-500 font-mono">CEO: ${myGuild.leader}</div><div class="text-right"><div class="text-[10px] text-gray-500 uppercase">Skarbiec</div><div class="text-xl font-mono font-bold text-[#eab308]">${fmt(myGuild.bank)} VC</div></div></div><div class="flex gap-2 mt-4 pt-4 border-t border-[#333]"><input type="number" id="treasury-amount" placeholder="KWOTA" class="w-24 bg-black text-white text-xs p-1 border border-[#333] font-mono"><button id="deposit-treasury-btn" class="bg-green-900/30 text-green-500 border border-green-900 text-xs px-3 py-1 uppercase hover:bg-green-900/50">Wpłać</button><button id="withdraw-treasury-btn" class="bg-red-900/30 text-red-500 border border-red-900 text-xs px-3 py-1 uppercase hover:bg-red-900/50">Wypłać</button></div></div><div class="flex-grow overflow-y-auto space-y-4 mb-4 custom-scrollbar"><div><h3 class="font-bold text-gray-500 text-xs uppercase mb-2">Aktywa Przemysłowe</h3><div id="guild-owned-list" class="space-y-2"></div></div></div><div class="h-40 bg-black border border-[#333] flex flex-col"><div id="guild-chat-messages" class="flex-grow overflow-y-auto p-2 text-xs font-mono space-y-1 custom-scrollbar"></div><div class="flex p-1 border-t border-[#333]"><input id="chat-message-input" class="flex-grow bg-transparent text-white px-2 text-xs font-mono outline-none" placeholder="TRANSMISJA..."><button id="send-chat-msg-btn" class="text-[#eab308] px-2"><i class="ri-send-plane-fill"></i></button></div></div></div>`;
+        const ownedDiv = document.getElementById('guild-owned-list');
+        if(ownedDiv) { for(const k in myGuild.ownedAssets) { const a = config.guildAssets[k]; ownedDiv.innerHTML += `<div class="bg-[#151515] border border-[#333] p-2 flex justify-between items-center"><div class="flex items-center gap-2"><i class="ri-government-line text-gray-500"></i><div><div class="font-bold text-white text-xs uppercase">${a.name}</div><div class="text-[10px] text-green-500 font-mono">+${fmt(a.incomePerTick)}/min</div></div></div></div>`; } }
+    }
+}
+
+export function renderVehicleCard(key) {
+    const [type, ...idParts] = key.split(':'); const id = idParts.join(':');
+    const isOwned = !!state.owned[key];
+    const baseData = isOwned ? state.owned[key] : state.vehicles[type]?.get(id);
+    if (!baseData) { $('vehicle-card').classList.add('translate-y-[150%]'); return; }
+    const v = { ...baseData, ...(state.vehicles[type]?.get(id) || {}) };
+    const eco = getVehicleEcoSpecs(type);
+    const container = document.getElementById('vehicle-card-content');
+    
+    let locationDisplay = '';
+    if (type === 'plane') {
+        locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL';
+    } else {
+        const flag = FLAGS[v.country] || '🏳️';
+        locationDisplay = `${flag} ${v.country || 'Nieznany'}`;
+    }
+
+    container.innerHTML = `<div class="grid grid-cols-3 gap-6"><div class="col-span-1 flex flex-col gap-2"><div class="aspect-square bg-black border border-[#333] flex items-center justify-center relative group"><div class="text-6xl scale-125 transition-transform group-hover:scale-110">${getIconHtml(type)}</div><div class="absolute top-2 right-2 text-[10px] font-bold text-gray-500 border border-gray-800 bg-black px-1 uppercase">${type}</div></div><div class="text-center"><div class="text-[10px] text-gray-500 font-bold uppercase">Wartość</div><div class="text-lg font-mono font-bold text-[#eab308]">${fmt(config.basePrice[type])} VC</div></div></div><div class="col-span-2 flex flex-col justify-between"><div><h2 class="font-header text-2xl text-white leading-none mb-1 uppercase">${isOwned ? v.customName : v.title}</h2><div class="text-xs text-gray-500 font-mono mb-4 uppercase">ID: ${v.id} • ${locationDisplay}</div><div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm font-mono"><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Paliwo</span><span class="text-white">${eco.fuel}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Emisja</span><span class="text-white">${eco.co2}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Zużycie</span><span class="text-white">${isOwned ? Math.round(v.wear) + '%' : '0%'}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Przebieg</span><span class="text-white">${isOwned ? fmt(v.odo_km) : '0'} km</span></div></div></div><div class="flex gap-2 mt-4">${isOwned ? `<button class="flex-1 btn-action py-2" id="upgrade-btn">Ulepsz</button><button class="flex-1 btn-cancel py-2 border border-[#333]" data-svc="${key}">Serwis</button><button class="px-3 btn-cancel py-2 border border-[#333] text-red-500 hover:bg-red-900/20" id="sell-quick-btn"><i class="ri-delete-bin-line"></i></button><button class="px-3 btn-cancel py-2 border border-[#333] text-blue-500 hover:bg-blue-900/20" id="sell-market-btn"><i class="ri-auction-line"></i></button>` : `<button class="w-full btn-action py-2" data-buy="${key}|${config.basePrice[type]}">ZAKUP JEDNOSTKĘ</button>`}</div></div></div>`;
+    document.getElementById('vehicle-card').classList.remove('translate-y-[150%]');
+}
 
 export function renderLootboxTab(container) {
     container.innerHTML = '<div class="p-4 grid grid-cols-2 gap-4"></div>';
@@ -383,7 +409,7 @@ export function renderMarket(container) {
 
 export function renderStats(container) {
     const timeframe = state.ui.statsTimeframe || '24h';
-    const stats = calculatePeriodStats(timeframe); // Zakładamy, że helper jest dostępny lub go tu wkleję
+    const stats = calculatePeriodStats(timeframe);
     
     container.innerHTML = `
         <div class="p-4 flex flex-col h-full">
@@ -413,28 +439,16 @@ function calculatePeriodStats(timeframe) {
     const history = state.profile.earnings_history || [];
     const avgPerMin = history.length > 0 ? (history.reduce((a,b)=>a+b,0) / history.length) : 0;
     let multiplier = timeframe === '1h' ? 60 : (timeframe === '24h' ? 1440 : 10080);
-    
     const revenue = Math.round(avgPerMin * multiplier);
     const fuelCost = Math.round(revenue * 0.25);
     const profit = revenue - fuelCost;
     const activeVehicles = Object.values(state.owned).filter(v => v.isMoving).length || 1;
     const distance = Math.round((multiplier / 60) * 80 * activeVehicles * 0.5);
-    
     return { revenue, fuelCost, profit, distance };
 }
 
 function renderStatTile(label, value, unit, icon, colorClass, isBig = false) {
-    return `
-        <div class="bg-[#1a1a1a] border border-[#333] p-3 flex flex-col justify-between ${isBig ? 'col-span-2 bg-[#1f1f1f] border-l-4 border-l-green-500' : ''}">
-            <div class="flex justify-between items-start mb-1">
-                <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">${label}</div>
-                <i class="${icon} ${colorClass} text-lg"></i>
-            </div>
-            <div class="font-mono font-bold text-white ${isBig ? 'text-2xl' : 'text-lg'}">
-                ${fmt(value)} <span class="text-xs text-gray-600 font-normal">${unit}</span>
-            </div>
-        </div>
-    `;
+    return `<div class="bg-[#1a1a1a] border border-[#333] p-3 flex flex-col justify-between ${isBig ? 'col-span-2 bg-[#1f1f1f] border-l-4 border-l-green-500' : ''}"><div class="flex justify-between items-start mb-1"><div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">${label}</div><i class="${icon} ${colorClass} text-lg"></i></div><div class="font-mono font-bold text-white ${isBig ? 'text-2xl' : 'text-lg'}">${fmt(value)} <span class="text-xs text-gray-600 font-normal">${unit}</span></div></div>`;
 }
 
 export function renderEnergyPrices(container) {
@@ -489,5 +503,5 @@ export function renderAchievements(container) {
     container.appendChild(list);
 }
 
-// Mapowanie aliasów dla kompatybilności ze starym kodem
+// Alias dla kompatybilności
 export function renderCharts(c) { renderStats(c); }
