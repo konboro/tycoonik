@@ -68,7 +68,7 @@
         </div>
     </aside>
 
-    <main class="flex-grow flex flex-col relative w-full overflow-hidden">
+<main class="flex-grow flex flex-col relative w-full overflow-hidden">
         
         <header id="kpi-panel" class="kpi-panel h-20 grid grid-cols-3 items-center px-6 z-40 shrink-0 shadow-lg bg-[#0f0f0f] w-full">
             
@@ -94,16 +94,16 @@
                 </div>
             </div>
 
-            <div class="flex flex-col items-center justify-center">
+            <div class="flex flex-row items-end justify-center gap-6">
                 <div class="text-center">
                     <div class="font-mono-tech text-4xl text-[#eab308] font-bold tracking-tighter leading-none drop-shadow-md whitespace-nowrap">
                         <span id="wallet">0</span> <span class="text-sm text-gray-600 align-top mt-1 inline-block">VC</span>
                     </div>
-                    <div class="flex items-center justify-center gap-2 mt-1 opacity-80 hover:opacity-100 transition-opacity">
-                        <div class="text-[10px] text-gray-500 font-bold uppercase bg-[#111] px-1 rounded border border-[#333]">Zysk/h</div>
-                        <div id="hourly-earnings-odometer" class="odometer-box scale-90 origin-left">
-                            <div class="odometer-digit">0</div>
-                        </div>
+                </div>
+                <div class="flex flex-col items-center opacity-80 hover:opacity-100 transition-opacity pb-1">
+                    <div class="text-[9px] text-gray-500 font-bold uppercase mb-0.5">ZYSK / h</div>
+                    <div id="hourly-earnings-odometer" class="odometer-box origin-left border border-[#333] bg-black px-2 py-1">
+                        <div class="odometer-digit text-lg text-green-500">0</div>
                     </div>
                 </div>
             </div>
@@ -127,6 +127,8 @@
                 </button>
             </div>
         </header>
+
+        ```
 
         <div class="flex-grow relative overflow-hidden w-full h-full">
             
