@@ -1,6 +1,8 @@
-// js/lootbox-manager.js - Lootbox Management System
-import { LOOTBOX_CONFIG } from './assets.js';
-import { showNotification } from './notifications.js';
+// js/lootbox-manager.js
+import { lootboxConfig } from './config.js';
+import { showNotification, fmt, getVehicleRarity } from './utils.js';
+import { updateUI, forceUpdateWallet } from './ui-core.js';
+import { supabase } from './supabase.js';
 
 export class LootboxManager {
     constructor(gameState) {
@@ -8,28 +10,28 @@ export class LootboxManager {
         this.pendingLootboxes = [];
     }
 
-    // Open a lootbox (from achievements or purchased)
+    // Otwieranie skrzynki (z osiągnięć lub kupionej)
     openLootbox(boxType, isFromAchievement = false) {
-        const box = LOOTBOX_CONFIG[boxType];
+        const box = lootboxConfig[boxType];
         if (!box) {
-            console.error(`Unknown lootbox type: ${boxType}`);
+            console.error(`Nieznany typ skrzynki: ${boxType}`);
             return null;
         }
 
-        // If not from achievement, charge the player
+        // Jeśli to nie nagroda, pobierz opłatę
         if (!isFromAchievement) {
             if (this.state.wallet < box.cost) {
-                showNotification("Nie masz wystarczająco VC!", true);
+                showNotification("Brak wystarczających środków!", true);
                 return null;
             }
             this.state.wallet -= box.cost;
         }
 
-        // Track lootbox opens
+        // Statystyki
         if (!this.state.profile.lootboxes_opened) this.state.profile.lootboxes_opened = 0;
         this.state.profile.lootboxes_opened++;
 
-        // Determine rarity based on drop rates
+        // Losowanie rzadkości
         const rand = Math.random();
         let cumulativeProb = 0;
         let prizeRarity = 'common';
@@ -42,7 +44,7 @@ export class LootboxManager {
             }
         }
 
-        // Find available vehicles of the determined rarity
+        // Znajdź dostępne pojazdy tej rzadkości
         let unownedVehicles = [];
         Object.values(this.state.vehicles).forEach(vehicleMap => {
             for (const v of vehicleMap.values()) {
@@ -52,19 +54,19 @@ export class LootboxManager {
             }
         });
 
-        // Filter by lootbox type if specified
+        // Filtruj po typie skrzynki (np. tylko pociągi)
         if (box.type) {
             unownedVehicles = unownedVehicles.filter(v => v.type === box.type);
         }
 
-        // Filter by rarity
-        let prizePool = unownedVehicles.filter(v => this.getVehicleRarity(v) === prizeRarity);
+        // Filtruj po wylosowanej rzadkości
+        let prizePool = unownedVehicles.filter(v => getVehicleRarity(v) === prizeRarity);
 
-        // Fallback to lower rarity if no vehicles available
+        // Fallback (jeśli brak pojazdów danej rzadkości, szukaj niższych)
         if (prizePool.length === 0) {
             const rarities = ['legendary', 'epic', 'rare', 'common'];
             for (let i = rarities.indexOf(prizeRarity) + 1; i < rarities.length; i++) {
-                prizePool = unownedVehicles.filter(v => this.getVehicleRarity(v) === rarities[i]);
+                prizePool = unownedVehicles.filter(v => getVehicleRarity(v) === rarities[i]);
                 if (prizePool.length > 0) {
                     prizeRarity = rarities[i];
                     break;
@@ -82,7 +84,7 @@ export class LootboxManager {
         };
 
         if (prizePool.length > 0) {
-            // Grant a vehicle
+            // Przyznaj pojazd
             const prize = prizePool[Math.floor(Math.random() * prizePool.length)];
             const key = `${prize.type}:${prize.id}`;
 
@@ -99,143 +101,60 @@ export class LootboxManager {
                 serviceHistory: []
             };
 
+            // Zapisz do bazy (Supabase)
+            (async () => {
+                const user = (await supabase.auth.getUser()).data.user;
+                if(user) {
+                    await supabase.from('vehicles').insert([{ 
+                        owner_id: user.id, 
+                        vehicle_api_id: prize.id, 
+                        type: prize.type, 
+                        custom_name: prize.title, 
+                        wear: 0, 
+                        is_moving: false 
+                    }]);
+                    // Jeśli kupione za kasę, zaktualizuj portfel w bazie
+                    if (!isFromAchievement) {
+                        await supabase.from('profiles').update({ wallet: this.state.wallet }).eq('id', user.id);
+                    }
+                }
+            })();
+
             result.prize = prize;
             result.message = `Otrzymano: ${prize.title}!`;
             
             showNotification(`🎁 ${box.name}: ${prize.title}!`);
         } else {
-            // Fallback: give VC compensation
+            // Fallback: zwrot gotówki (lub nagroda pocieszenia)
             const fallbackVC = Math.round(box.cost * 0.75);
             this.state.wallet += fallbackVC;
             
             result.type = 'currency';
             result.fallbackReward = fallbackVC;
-            result.message = `Brak dostępnych pojazdów. Otrzymano ${fallbackVC} VC.`;
+            result.message = `Brak dostępnych pojazdów. Otrzymano ${fmt(fallbackVC)} VC.`;
             
-            showNotification(`📦 ${box.name}: +${fallbackVC} VC (zwrot)`);
+            showNotification(`📦 ${box.name}: +${fmt(fallbackVC)} VC (zwrot)`);
         }
 
         updateUI();
-        forceUpdateWalletWithFlash(this.state.wallet, false);
+        forceUpdateWallet();
 
         return result;
     }
 
-    // Open achievement lootbox with special presentation
+    // Otwieranie skrzynki z osiągnięcia
     openAchievementLootbox(achievementId, lootboxType) {
         const result = this.openLootbox(lootboxType, true);
-        if (result) {
-            result.achievementId = achievementId;
-            this.showAchievementLootboxModal(result);
-        }
         return result;
     }
 
-    // Show special modal for achievement lootbox
-    showAchievementLootboxModal(result) {
-        // This would integrate with your existing modal system
-        const modal = document.getElementById('achievement-lootbox-modal');
-        if (modal) {
-            // Update modal content based on result
-            this.updateLootboxModal(modal, result);
-            modal.style.display = 'flex';
-        } else {
-            // Fallback to regular notification
-            showNotification(`🏆🎁 ${result.message}`);
-        }
-    }
-
-    // Get all pending lootboxes from achievements
-    getPendingAchievementLootboxes() {
-        return this.state.pendingLootboxes || [];
-    }
-
-    // Process next pending lootbox
-    processNextPendingLootbox() {
-        const pending = this.getPendingAchievementLootboxes();
-        if (pending.length === 0) return null;
-
-        const lootbox = pending[0];
-        const result = this.openAchievementLootbox(lootbox.fromAchievement, lootbox.type);
-        
-        // Remove from pending queue
-        this.state.pendingLootboxes.shift();
-        
-        return result;
-    }
-
-    // Auto-open all pending lootboxes
-    openAllPendingLootboxes() {
-        const results = [];
-        while (this.getPendingAchievementLootboxes().length > 0) {
-            const result = this.processNextPendingLootbox();
-            if (result) results.push(result);
-        }
-        return results;
-    }
-
-    // Helper method to get vehicle rarity (same logic as in assets.js)
-    getVehicleRarity(vehicle) {
-        if (!vehicle || !vehicle.type) return 'common';
-        const nameToCheck = (vehicle.title || vehicle.customName || '').toLowerCase();
-        
-        switch (vehicle.type) {
-            case 'bike': 
-            case 'bus': 
-                return 'common';
-            case 'train': 
-            case 'tube': 
-                if (nameToCheck.includes('victoria')) return 'legendary';
-                if (nameToCheck.includes('jubilee') || nameToCheck.includes('piccadilly')) return 'epic';
-                return 'rare';
-            case 'ship': 
-            case 'river-bus':
-                return 'epic';
-            case 'plane': 
-                return 'legendary';
-            case 'tram': 
-                return 'rare';
-            default: 
-                return 'common';
-        }
-    }
-
-    // Get lootbox statistics
-    getLootboxStats() {
-        const opened = this.state.profile.lootboxes_opened || 0;
-        const pending = this.getPendingAchievementLootboxes().length;
-        
-        return {
-            totalOpened: opened,
-            pendingFromAchievements: pending,
-            favoriteRarity: this.getFavoriteRarity()
-        };
-    }
-
-    // Get player's most obtained rarity (for stats)
-    getFavoriteRarity() {
-        const rarities = { common: 0, rare: 0, epic: 0, legendary: 0 };
-        
-        Object.values(this.state.owned).forEach(vehicle => {
-            const rarity = this.getVehicleRarity(vehicle);
-            if (rarities[rarity] !== undefined) {
-                rarities[rarity]++;
-            }
-        });
-
-        return Object.entries(rarities).reduce((a, b) => rarities[a[0]] > rarities[b[0]] ? a : b)[0];
-    }
-
-    // Initialize lootbox system
     static initializeLootboxSystem(gameState) {
         if (!gameState.pendingLootboxes) gameState.pendingLootboxes = [];
         if (!gameState.profile.lootboxes_opened) gameState.profile.lootboxes_opened = 0;
-        
         return new LootboxManager(gameState);
     }
 }
 
-// Export for easy integration
 export function createLootboxManager(gameState) {
     return LootboxManager.initializeLootboxSystem(gameState);
 }
