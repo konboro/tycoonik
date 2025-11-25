@@ -68,41 +68,70 @@ export function setupEventListeners() {
             return; 
         }
 
-        // 2. Kupno Stacji (NIERUCHOMOŚCI)
+        // 2. Kupno Stacji (NIERUCHOMOŚCI) - POPRAWIONE
         const buyStationTarget = e.target.closest('[data-buy-station]');
         if (buyStationTarget) { 
             e.stopPropagation(); 
+            console.log("Kliknięto kupno stacji:", buyStationTarget.dataset.buyStation); // Debug
+            
             (async () => {
                 const [id, priceStr] = buyStationTarget.dataset.buyStation.split('|'); 
                 const price = parseInt(priceStr); 
+                
                 if (state.wallet >= price) { 
+                    // Wywołanie RPC
                     const { data, error } = await supabase.rpc('buy_station_secure', { p_station_id: id, p_price: price });
-                    if (error) { showNotification(error.message, true); return; }
+                    
+                    if (error) { 
+                        showNotification("Błąd serwera: " + error.message, true); 
+                        return; 
+                    }
+                    
                     if (data.success) {
                         state.wallet = data.new_wallet;
+                        
+                        // Aktualizacja lokalnego stanu
                         let found = false;
-                        for (const cat in state.infrastructure) { 
-                            if(state.infrastructure[cat][id]) {
-                                state.infrastructure[cat][id].owned = true; 
+                        // Sprawdzamy we wszystkich kategoriach
+                        const cats = ['trainStations', 'tubeStations', 'busTerminals', 'riverPiers', 'cableCar'];
+                        for (const cat of cats) {
+                            if (state.infrastructure[cat] && state.infrastructure[cat][id]) {
+                                state.infrastructure[cat][id].owned = true;
                                 found = true;
+                                break; // Znaleziono i zaktualizowano
                             }
                         }
+                        
+                        if (!found) {
+                            console.warn("Nie znaleziono stacji w stanie lokalnym:", id);
+                        }
+
+                        // Odśwież UI
                         updateUI(); 
-                        render(); // Ważne: Przeładowanie, żeby zniknęło z listy do kupienia
+                        render(); // Przeładuje listę (kupiona stacja zniknie z rynku)
+                        redrawMap(); // Zaktualizuje marker na mapie
                         showNotification("Zakupiono nieruchomość!");
-                    } else { showNotification(data.message, true); }
-                } else { showNotification('Za mało środków!', true); } 
+                        
+                    } else { 
+                        showNotification(data.message, true); 
+                    }
+                } else { 
+                    showNotification('Za mało środków!', true); 
+                } 
             })();
             return; 
         }
 
+        // 3. Otwieranie Skrzynek - POPRAWIONE
         const openBoxTarget = e.target.closest('[data-open-box]'); 
         if (openBoxTarget) { 
             e.stopPropagation(); 
+            // Wywołujemy menedżera, który powinien obsłużyć modal
             lootboxManager.openLootbox(openBoxTarget.dataset.openBox); 
             return; 
         }
 
+        // 4. Obsługa Gildii
         if (e.target.id === 'create-guild-btn') {
             const name = $('guild-name-input').value;
             if(name && state.wallet >= config.guilds.creationCost) {
@@ -114,6 +143,7 @@ export function setupEventListeners() {
             }
         }
         
+        // 5. Obsługa Kart Pojazdów (Klik w liście)
         const vehicleItem = e.target.closest('[data-key]'); 
         if (vehicleItem && !e.target.closest('button')) { 
             state.selectedVehicleKey = vehicleItem.dataset.key; 
@@ -121,6 +151,7 @@ export function setupEventListeners() {
         }
     });
 
+    // Vehicle Card Actions
     const card = $('vehicle-card');
     if (card) {
         card.addEventListener('click', e => {
@@ -217,7 +248,13 @@ export function setupEventListeners() {
         });
     }
     
-    $('close-prize-modal').addEventListener('click', () => $('lootbox-prize-modal').style.display = 'none');
-    $('cancel-sell-btn').addEventListener('click', () => $('sell-modal').style.display = 'none');
-    $('close-asset-details-modal').addEventListener('click', () => $('asset-details-modal').style.display = 'none');
+    // Modals Close Handlers
+    const closePrizeBtn = $('close-prize-modal');
+    if(closePrizeBtn) closePrizeBtn.addEventListener('click', () => $('lootbox-prize-modal').style.display = 'none');
+    
+    const cancelSellBtn = $('cancel-sell-btn');
+    if(cancelSellBtn) cancelSellBtn.addEventListener('click', () => $('sell-modal').style.display = 'none');
+    
+    const closeDetailsBtn = $('close-asset-details-modal');
+    if(closeDetailsBtn) closeDetailsBtn.addEventListener('click', () => $('asset-details-modal').style.display = 'none');
 }
