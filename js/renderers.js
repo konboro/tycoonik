@@ -10,7 +10,6 @@ const FLAGS = {
     'Greece': '🇬🇷', 'Europe': '🇪🇺', 'Germany': '🇩🇪', 'France': '🇫🇷'
 };
 
-// --- NAPRAWIONY EKSPORT ---
 export function renderEmptyState(container, message) { 
     container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-gray-600 p-8 text-center"><i class="ri-ghost-line text-4xl mb-2"></i><span class="font-mono text-xs uppercase tracking-widest">${message}</span></div>`; 
 }
@@ -93,7 +92,6 @@ export function renderVehicleList(container) {
 
         const vTitle = isOwned ? (ownedData.customName || v.title) : v.title;
         
-        // Logika lokalizacji
         let locationDisplay = '';
         if (v.type === 'plane') {
             locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL';
@@ -113,7 +111,6 @@ export function renderVehicleList(container) {
                             ${isOwned ? `<div class="w-3 h-3 rounded-full ${statusDotClass}" title="Status"></div>` : ''}
                             <div class="font-bold text-white text-base group-hover:text-[#eab308] transition-colors font-header tracking-wide uppercase truncate max-w-[150px] leading-none">${vTitle}</div>
                         </div>
-                        
                         <div class="flex items-center gap-2 text-xs font-mono mt-0.5 uppercase text-gray-400">
                             <span>${locationDisplay}</span>
                             <span class="text-[#333]">|</span>
@@ -128,7 +125,6 @@ export function renderVehicleList(container) {
                     }
                 </div>
             </div>
-            
             <div class="grid grid-cols-3 gap-px bg-[#444] border border-[#333] rounded-sm overflow-hidden mb-3 text-center">
                 <div class="bg-[#1a1a1a] p-2"><div class="text-[10px] text-gray-500 uppercase mb-1">Paliwo</div><div class="text-sm text-gray-200 font-mono font-bold">${eco.fuel}</div></div>
                 <div class="bg-[#1a1a1a] p-2"><div class="text-[10px] text-gray-500 uppercase mb-1">Emisja</div><div class="text-sm text-gray-200 font-mono font-bold">${eco.co2}</div></div>
@@ -137,19 +133,8 @@ export function renderVehicleList(container) {
                 <div class="bg-[#1a1a1a] p-2"><div class="text-[10px] text-gray-500 uppercase mb-1">Koszt/km</div><div class="text-sm text-red-400 font-mono font-bold">${costPerKm.toFixed(1)}</div></div>
                 <div class="bg-[#1a1a1a] p-2"><div class="text-[10px] text-gray-500 uppercase mb-1">Netto</div><div class="text-sm text-blue-400 font-mono font-bold">${netEarnings.toFixed(1)}</div></div>
             </div>
-
-            ${!isOwned ? `
-                <button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-sm font-bold py-2 uppercase transition border border-[#333]" data-buy="${key}|${price}">Zakup Jednostkę</button>
-            ` : `
-                <div class="flex justify-between items-center mt-2 px-1">
-                    <div class="text-xs font-mono text-gray-400 flex items-center gap-2">
-                        <i class="ri-tools-line"></i> Stan techniczny: <span class="${(ownedData.wear||0) > 80 ? 'text-red-500 font-bold' : 'text-white'}">${100 - Math.round(ownedData.wear || 0)}%</span>
-                    </div>
-                    <div class="h-1 w-24 bg-[#333] rounded-full overflow-hidden">
-                         <div class="h-full bg-${(ownedData.wear||0) > 80 ? 'red' : 'green'}-500" style="width: ${100 - (ownedData.wear||0)}%"></div>
-                    </div>
-                </div>
-            `}
+            ${!isOwned ? `<button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-sm font-bold py-2 uppercase transition border border-[#333]" data-buy="${key}|${price}">Zakup Jednostkę</button>` : 
+            `<div class="flex justify-between items-center mt-2 px-1"><div class="text-xs font-mono text-gray-400 flex items-center gap-2"><i class="ri-tools-line"></i> Stan techniczny: <span class="${(ownedData.wear||0) > 80 ? 'text-red-500 font-bold' : 'text-white'}">${100 - Math.round(ownedData.wear || 0)}%</span></div><div class="h-1 w-24 bg-[#333] rounded-full overflow-hidden"><div class="h-full bg-${(ownedData.wear||0) > 80 ? 'red' : 'green'}-500" style="width: ${100 - (ownedData.wear||0)}%"></div></div></div>`}
         `;
         container.appendChild(el);
     });
@@ -199,32 +184,10 @@ export function renderInfrastructure(container) {
 export function renderStationDetails(id, container) {
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
-    
-    container.innerHTML = `
-        <div class="flex justify-between items-center mb-2 pb-2 border-b border-[#333]">
-            <div class="font-header text-[#eab308] text-sm uppercase tracking-wide">TABLICA PRZYJAZDÓW / ODJAZDÓW</div>
-            <div class="text-[10px] text-gray-500 font-mono animate-pulse">LIVE DATA</div>
-        </div>
-    `;
-
+    container.innerHTML = `<div class="flex justify-between items-center mb-2 pb-2 border-b border-[#333]"><div class="font-header text-[#eab308] text-sm uppercase tracking-wide">TABLICA PRZYJAZDÓW / ODJAZDÓW</div><div class="text-[10px] text-gray-500 font-mono animate-pulse">LIVE DATA</div></div>`;
     const data = state.stationData[id];
-    
-    if (!data || (Array.isArray(data) && data.length === 0)) {
-        container.innerHTML += `<div class="text-center text-gray-600 text-xs font-mono p-4">BRAK DANYCH ROZKŁADOWYCH</div>`;
-        return;
-    }
-
-    let tableHtml = `<table class="w-full text-[10px] font-mono text-left border-collapse">
-        <thead>
-            <tr class="text-gray-500 border-b border-[#333]">
-                <th class="py-1 pr-2">LINIA</th>
-                <th class="py-1 px-2">KIERUNEK</th>
-                <th class="py-1 px-2 text-right">PLAN</th>
-                <th class="py-1 pl-2 text-right">RZECZ.</th>
-            </tr>
-        </thead>
-        <tbody class="text-gray-300">`;
-
+    if (!data || (Array.isArray(data) && data.length === 0)) { container.innerHTML += `<div class="text-center text-gray-600 text-xs font-mono p-4">BRAK DANYCH ROZKŁADOWYCH</div>`; return; }
+    let tableHtml = `<table class="w-full text-[10px] font-mono text-left border-collapse"><thead><tr class="text-gray-500 border-b border-[#333]"><th class="py-1 pr-2">LINIA</th><th class="py-1 px-2">KIERUNEK</th><th class="py-1 px-2 text-right">PLAN</th><th class="py-1 pl-2 text-right">RZECZ.</th></tr></thead><tbody class="text-gray-300">`;
     if (type === 'train' && Array.isArray(data)) {
         const rows = data.slice(0, 8);
         rows.forEach(t => {
@@ -237,37 +200,16 @@ export function renderStationDetails(id, container) {
             const schedTime = scheduled.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
             let actTime = '-';
             let timeClass = 'text-gray-400';
-            
-            if (actual) {
-                actTime = actual.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
-                const delay = (actual - scheduled) / 60000;
-                if (delay > 3) timeClass = 'text-red-500 font-bold';
-                else if (delay < -1) timeClass = 'text-blue-400';
-                else timeClass = 'text-green-500';
-            } else if (rowData.liveEstimateTime) {
-                 const est = new Date(rowData.liveEstimateTime);
-                 actTime = est.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
-                 timeClass = 'text-yellow-600 italic';
-            }
-
+            if (actual) { actTime = actual.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'}); const delay = (actual - scheduled) / 60000; if (delay > 3) timeClass = 'text-red-500 font-bold'; else if (delay < -1) timeClass = 'text-blue-400'; else timeClass = 'text-green-500'; } 
+            else if (rowData.liveEstimateTime) { const est = new Date(rowData.liveEstimateTime); actTime = est.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'}); timeClass = 'text-yellow-600 italic'; }
             tableHtml += `<tr class="border-b border-[#222] hover:bg-[#1a1a1a]"><td class="py-1 pr-2 text-[#eab308] font-bold">${t.trainType} ${t.trainNumber}</td><td class="py-1 px-2 truncate max-w-[100px]">${dest} (${typeText})</td><td class="py-1 px-2 text-right text-gray-500">${schedTime}</td><td class="py-1 pl-2 text-right ${timeClass}">${actTime}</td></tr>`;
         });
     } 
     else if ((type === 'tube' || type === 'bus' || type === 'river-bus') && data.data) {
         const arrivals = data.data.sort((a,b) => a.timeToStation - b.timeToStation).slice(0, 8);
-        arrivals.forEach(a => {
-            const min = Math.floor(a.timeToStation / 60);
-            const timeDisplay = min === 0 ? 'TERAZ' : `${min} min`;
-            let statusClass = 'text-green-500';
-            if (min > 5) statusClass = 'text-gray-300';
-            if (min === 0) statusClass = 'text-[#eab308] font-bold animate-pulse';
-            tableHtml += `<tr class="border-b border-[#222] hover:bg-[#1a1a1a]"><td class="py-1 pr-2 text-blue-400 font-bold">${a.lineName || 'BUS'}</td><td class="py-1 px-2 truncate max-w-[100px]">${a.destinationName || a.towards || 'Centrum'}</td><td class="py-1 px-2 text-right text-gray-500">-</td><td class="py-1 pl-2 text-right ${statusClass}">${timeDisplay}</td></tr>`;
-        });
+        arrivals.forEach(a => { const min = Math.floor(a.timeToStation / 60); const timeDisplay = min === 0 ? 'TERAZ' : `${min} min`; let statusClass = 'text-green-500'; if (min > 5) statusClass = 'text-gray-300'; if (min === 0) statusClass = 'text-[#eab308] font-bold animate-pulse'; tableHtml += `<tr class="border-b border-[#222] hover:bg-[#1a1a1a]"><td class="py-1 pr-2 text-blue-400 font-bold">${a.lineName || 'BUS'}</td><td class="py-1 px-2 truncate max-w-[100px]">${a.destinationName || a.towards || 'Centrum'}</td><td class="py-1 px-2 text-right text-gray-500">-</td><td class="py-1 pl-2 text-right ${statusClass}">${timeDisplay}</td></tr>`; });
     }
-    else {
-        tableHtml += `<tr><td colspan="4" class="py-2 text-center text-gray-500">Dane tabelaryczne niedostępne dla tego operatora.</td></tr>`;
-    }
-
+    else { tableHtml += `<tr><td colspan="4" class="py-2 text-center text-gray-500">Dane tabelaryczne niedostępne dla tego operatora.</td></tr>`; }
     tableHtml += '</tbody></table>';
     const configEarnings = state.infrastructure[type === 'train' ? 'trainStations' : (type==='tube'?'tubeStations':(type==='river-bus'?'riverPiers':'busTerminals'))]?.[id]?.hourlyEarnings || 0;
     tableHtml += `<div class="mt-3 flex justify-between items-center border-t border-[#333] pt-2"><div class="text-[9px] text-gray-500 uppercase font-bold">Szacowany Przychód</div><div class="text-[#eab308] font-mono font-bold text-sm">+${fmt(configEarnings)} VC/h</div></div>`;
@@ -295,17 +237,13 @@ export function renderVehicleCard(key) {
     if (!baseData) { $('vehicle-card').classList.add('translate-y-[150%]'); return; }
     const v = { ...baseData, ...(state.vehicles[type]?.get(id) || {}) };
     const eco = getVehicleEcoSpecs(type);
-    
-    // Logika lokalizacji dla karty
-    let locationDisplay = '';
-    if (type === 'plane') {
-        locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL';
-    } else {
-        const flag = FLAGS[v.country] || '🏳️';
-        locationDisplay = `${flag} ${v.country || 'Nieznany'}`;
-    }
-
     const container = document.getElementById('vehicle-card-content');
+    
+    // Logika flag
+    let locationDisplay = '';
+    if (type === 'plane') { locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL'; } 
+    else { const flag = FLAGS[v.country] || '🏳️'; locationDisplay = `${flag} ${v.country || 'Nieznany'}`; }
+
     container.innerHTML = `<div class="grid grid-cols-3 gap-6"><div class="col-span-1 flex flex-col gap-2"><div class="aspect-square bg-black border border-[#333] flex items-center justify-center relative group"><div class="text-6xl scale-125 transition-transform group-hover:scale-110">${getIconHtml(type)}</div><div class="absolute top-2 right-2 text-[10px] font-bold text-gray-500 border border-gray-800 bg-black px-1 uppercase">${type}</div></div><div class="text-center"><div class="text-[10px] text-gray-500 font-bold uppercase">Wartość</div><div class="text-lg font-mono font-bold text-[#eab308]">${fmt(config.basePrice[type])} VC</div></div></div><div class="col-span-2 flex flex-col justify-between"><div><h2 class="font-header text-2xl text-white leading-none mb-1 uppercase">${isOwned ? v.customName : v.title}</h2><div class="text-xs text-gray-500 font-mono mb-4 uppercase">ID: ${v.id} • ${locationDisplay}</div><div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm font-mono"><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Paliwo</span><span class="text-white">${eco.fuel}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Emisja</span><span class="text-white">${eco.co2}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Zużycie</span><span class="text-white">${isOwned ? Math.round(v.wear) + '%' : '0%'}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Przebieg</span><span class="text-white">${isOwned ? fmt(v.odo_km) : '0'} km</span></div></div></div><div class="flex gap-2 mt-4">${isOwned ? `<button class="flex-1 btn-action py-2" id="upgrade-btn">Ulepsz</button><button class="flex-1 btn-cancel py-2 border border-[#333]" data-svc="${key}">Serwis</button><button class="px-3 btn-cancel py-2 border border-[#333] text-red-500 hover:bg-red-900/20" id="sell-quick-btn"><i class="ri-delete-bin-line"></i></button><button class="px-3 btn-cancel py-2 border border-[#333] text-blue-500 hover:bg-blue-900/20" id="sell-market-btn"><i class="ri-auction-line"></i></button>` : `<button class="w-full btn-action py-2" data-buy="${key}|${config.basePrice[type]}">ZAKUP JEDNOSTKĘ</button>`}</div></div></div>`;
     document.getElementById('vehicle-card').classList.remove('translate-y-[150%]');
 }
@@ -346,51 +284,105 @@ export function renderMarket(container) {
     });
 }
 
-export function renderCharts(container) {
-    container.innerHTML = `<div class="h-full flex flex-col p-2"><div class="bg-[#1a1a1a] border border-[#333] p-2 mb-4 flex-grow"><h4 class="text-[10px] text-gray-500 font-bold uppercase mb-2">Przychody (24h)</h4><div class="h-full w-full relative"><canvas id="earningsChart"></canvas></div></div></div>`;
-    setTimeout(() => {
-        const ctx = $('earningsChart').getContext('2d');
-        new Chart(ctx, { type: 'line', data: { labels: Array(60).fill(''), datasets: [{ label: 'VC', data: state.profile.earnings_history, borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.1)', borderWidth: 1, tension: 0.3, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#333' } }, y: { grid: { color: '#333' } } } } }); 
-    }, 100);
+// ===== NOWA IMPLEMENTACJA renderStats (ZAMIAST renderCharts) =====
+export function renderStats(container) {
+    // 1. Pobierz wybrany timeframe ze stanu lub domyślnie '24h'
+    const timeframe = state.ui.statsTimeframe || '24h';
+    
+    // 2. Oblicz dane
+    const stats = calculatePeriodStats(timeframe);
+    
+    // 3. HTML
+    container.innerHTML = `
+        <div class="p-4 flex flex-col h-full">
+            <div class="flex bg-[#111] p-1 rounded border border-[#333] mb-4">
+                <button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='1h'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="1h">1H</button>
+                <button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='24h'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="24h">24H</button>
+                <button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='7d'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="7d">7D</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 overflow-y-auto custom-scrollbar">
+                ${renderStatTile('Przychód', stats.revenue, 'VC', 'ri-money-dollar-circle-line', 'text-yellow-500')}
+                ${renderStatTile('Koszt Paliwa', stats.fuelCost, 'VC', 'ri-gas-station-line', 'text-red-500')}
+                ${renderStatTile('Zysk Netto', stats.profit, 'VC', 'ri-line-chart-line', stats.profit >= 0 ? 'text-green-500' : 'text-red-500', true)}
+                ${renderStatTile('Przebieg', stats.distance, 'km', 'ri-road-map-line', 'text-blue-400')}
+                ${renderStatTile('Kursy', stats.trips, '', 'ri-flag-2-line', 'text-purple-400')}
+                ${renderStatTile('Zużycie', stats.wear, '%', 'ri-tools-line', 'text-gray-400')}
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-[#333]">
+                <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 text-center">Estymacja na podstawie historii</div>
+            </div>
+        </div>
+    `;
+    
+    // 4. Obsługa kliknięć
+    container.querySelectorAll('[data-set-timeframe]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            state.ui.statsTimeframe = e.target.dataset.setTimeframe;
+            renderStats(container); // Prerenderuj tylko ten widok
+        });
+    });
+}
+
+// Helper do kafelka statystyk
+function renderStatTile(label, value, unit, icon, colorClass, isBig = false) {
+    return `
+        <div class="bg-[#1a1a1a] border border-[#333] p-3 flex flex-col justify-between ${isBig ? 'col-span-2 bg-[#1f1f1f] border-l-4 border-l-green-500' : ''}">
+            <div class="flex justify-between items-start mb-1">
+                <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">${label}</div>
+                <i class="${icon} ${colorClass} text-lg"></i>
+            </div>
+            <div class="font-mono font-bold text-white ${isBig ? 'text-2xl' : 'text-lg'}">
+                ${fmt(value)} <span class="text-xs text-gray-600 font-normal">${unit}</span>
+            </div>
+        </div>
+    `;
+}
+
+// Helper do obliczania statystyk
+function calculatePeriodStats(timeframe) {
+    // Dane historyczne (symulowane lub z logów)
+    // W prawdziwej implementacji brałbyś to z state.profile.history
+    
+    // Pobieramy ostatnie zarobki (z ticków)
+    const history = state.profile.earnings_history || [];
+    const avgPerMin = history.length > 0 ? (history.reduce((a,b)=>a+b,0) / history.length) : 0;
+    
+    let multiplier = 1;
+    if (timeframe === '1h') multiplier = 60;
+    else if (timeframe === '24h') multiplier = 60 * 24;
+    else if (timeframe === '7d') multiplier = 60 * 24 * 7;
+    
+    const revenue = Math.round(avgPerMin * multiplier);
+    const fuelCost = Math.round(revenue * 0.25); // Szacunek: koszty to ok. 25% przychodu
+    const profit = revenue - fuelCost;
+    
+    // Szacunki fizyczne (bazując na średnich)
+    const activeVehicles = Object.values(state.owned).filter(v => v.isMoving).length || 1;
+    const avgSpeed = 80; // km/h
+    const distance = Math.round((multiplier / 60) * avgSpeed * activeVehicles * 0.5); // 0.5 to współczynnik aktywności
+    
+    return {
+        revenue,
+        fuelCost,
+        profit,
+        distance,
+        trips: Math.round(distance / 300), // Szacunek: 1 kurs = 300km
+        wear: (distance * 0.001).toFixed(1) // Szacunek zużycia
+    };
 }
 
 export function renderEnergyPrices(container) {
-    container.innerHTML = `
-        <div class="p-4 space-y-4">
-            <div class="bg-[#1a1a1a] border border-[#333] p-4 mb-4">
-                <h3 class="text-lg font-header text-white uppercase mb-1">Globalny Rynek Energii</h3>
-                <p class="text-xs text-gray-500 font-mono">Ceny aktualizowane co godzinę na podstawie indeksów światowych.</p>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-    `;
-    
+    container.innerHTML = `<div class="p-4"><div class="bg-[#1a1a1a] border border-[#333] p-4 mb-4"><h3 class="text-lg font-header text-white uppercase mb-1">Globalny Rynek Energii</h3><p class="text-xs text-gray-500 font-mono">Ceny aktualizowane co godzinę na podstawie indeksów światowych.</p></div><div class="grid grid-cols-2 gap-4">`;
     const fuels = state.economy.globalFuels;
     const icons = { 'Diesel': 'ri-drop-fill', 'Benzyna': 'ri-gas-station-fill', 'Aviation': 'ri-plane-fill', 'Electricity': 'ri-flashlight-fill' };
     const colors = { 'Diesel': 'text-orange-500', 'Benzyna': 'text-green-500', 'Aviation': 'text-purple-500', 'Electricity': 'text-blue-500' };
-
     for (const type in fuels) {
         const data = fuels[type];
         const trendIcon = data.trend === 'up' ? 'ri-arrow-up-line text-red-500' : (data.trend === 'down' ? 'ri-arrow-down-line text-green-500' : 'ri-subtract-line text-gray-500');
         const unit = type === 'Electricity' ? 'VC / kWh' : 'VC / L';
-        
-        container.innerHTML += `
-            <div class="bg-[#151515] border border-[#333] p-4 flex flex-col justify-between hover:border-[#eab308] transition group">
-                <div class="flex justify-between items-start mb-2">
-                    <div class="w-10 h-10 bg-black border border-[#333] flex items-center justify-center rounded text-xl ${colors[type]}">
-                        <i class="${icons[type] || 'ri-drop-line'}"></i>
-                    </div>
-                    <div class="text-2xl ${trendIcon}"></div>
-                </div>
-                <div>
-                    <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">${type}</div>
-                    <div class="text-2xl font-mono font-bold text-white mt-1">${data.price.toFixed(2)} <span class="text-xs text-gray-600">${unit}</span></div>
-                </div>
-                <div class="mt-3 pt-2 border-t border-[#222] text-[10px] text-gray-500 font-mono flex justify-between">
-                    <span>TREND</span>
-                    <span class="uppercase">${data.trend}</span>
-                </div>
-            </div>
-        `;
+        container.innerHTML += `<div class="bg-[#151515] border border-[#333] p-4 flex flex-col justify-between hover:border-[#eab308] transition group"><div class="flex justify-between items-start mb-2"><div class="w-10 h-10 bg-black border border-[#333] flex items-center justify-center rounded text-xl ${colors[type]}"><i class="${icons[type] || 'ri-drop-line'}"></i></div><div class="text-2xl ${trendIcon}"></div></div><div><div class="text-xs text-gray-500 font-bold uppercase tracking-wider">${type}</div><div class="text-2xl font-mono font-bold text-white mt-1">${data.price.toFixed(2)} <span class="text-xs text-gray-600">${unit}</span></div></div><div class="mt-3 pt-2 border-t border-[#222] text-[10px] text-gray-500 font-mono flex justify-between"><span>TREND</span><span class="uppercase">${data.trend}</span></div></div>`;
     }
     container.innerHTML += `</div></div>`;
 }
@@ -432,3 +424,6 @@ export function renderAchievements(container) {
     }
     container.appendChild(list);
 }
+
+// Mapowanie aliasów dla kompatybilności ze starym kodem
+export function renderCharts(c) { renderStats(c); }

@@ -8,13 +8,12 @@ export const state = {
   profile: { companyName: null, logo: '🏢', color: 'blue', level: 1, xp: 0, km_total: 0, total_earned: 0, reputation: {}, minutes_in_transit: 0, earnings_history: [], dailyEarningsHistory: [], services_done: 0, upgrades_done: 0, lootboxes_opened: 0,transaction_history: [], friends: [] },
   wallet: 50000,
   owned: {},
-  // ZMIANA: Nowa struktura dla paliw globalnych
   economy: { 
       globalFuels: {
           'Diesel': { price: 1.45, trend: 'stable' },
           'Benzyna': { price: 1.62, trend: 'up' },
-          'Aviation': { price: 2.85, trend: 'down' }, // Paliwo lotnicze (Jet A-1)
-          'Electricity': { price: 0.25, trend: 'stable' } // Prąd (per kWh)
+          'Aviation': { price: 2.85, trend: 'down' }, 
+          'Electricity': { price: 0.25, trend: 'stable' } 
       }
   },
   marketListings: [],
@@ -44,7 +43,11 @@ export const state = {
   playerLocation: null,
   proximityCircle: null,
   
-  // Misje (przygotowane pod przyszłość)
+  // UI STATE - NOWOŚĆ
+  ui: {
+      statsTimeframe: '24h' // Domyślny widok: 1h, 24h, 7d
+  },
+  
   missions: { available: [], active: [], completed: 0 },
   social: { friends: [], requests: [], searchResults: [], activeChatFriendId: null, messages: {} }
 };
@@ -92,7 +95,6 @@ export function initializeGameState() {
     if (!state.profile.transaction_history) state.profile.transaction_history = [];
     if (!state.profile.friends) state.profile.friends = [];
     if (!state.profile.earnings_history) state.profile.earnings_history = [];
-    // Inicjalizacja domyślnych paliw jeśli brak
     if (!state.economy.globalFuels) {
         state.economy.globalFuels = {
             'Diesel': { price: 1.45, trend: 'stable' },
