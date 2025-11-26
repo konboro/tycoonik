@@ -2,14 +2,13 @@ import { state } from './state.js';
 import { config } from './config.js';
 import { map } from './state.js';
 import { $, fmt, getProximityBonus, createIcon, getIconHtml, ICONS, getWeatherIcon } from './utils.js';
-// USUNIĘTO IMPORT Z LOGIC.JS (przerywamy cykl)
-
+import { calculateAssetValue } from './logic.js'; 
 import { 
     renderVehicleList, renderInfrastructure, renderLootboxTab, renderMarket, 
     renderRankings, renderStats, renderAchievements, renderEnergyPrices, 
     renderTransactionHistory, renderGuildTab, renderCompanyTab, renderFriendsTab, 
     renderStationDetails, renderVehicleCard, renderEmptyState, renderSectionTitle,
-    renderRealEstateMarket, renderProfileTab
+    renderRealEstateMarket, renderProfileTab, renderPremiumStore // <--- DODANY IMPORT
 } from './renderers.js';
 
 // ===== 1. FUNKCJE POMOCNICZE UI =====
@@ -88,7 +87,7 @@ export function updatePlayerMarkerIcon() {
     }
 }
 
-// ===== 2. INICJALIZACJA FILTRÓW MAPY (HUD) =====
+// ===== 2. FILTRY MAPY I KLASTRY (HUD) =====
 
 export function initMapFilters() {
     const typesContainer = $('map-filters-types');
@@ -161,6 +160,7 @@ export function initMapFilters() {
 }
 
 export function updateMapFilterButtons() {
+    // Typy
     document.querySelectorAll('.map-type-filter').forEach(btn => {
         const type = btn.dataset.type;
         if (state.filters.types.includes(type)) {
@@ -171,6 +171,8 @@ export function updateMapFilterButtons() {
             btn.classList.add('opacity-50');
         }
     });
+
+    // Ownership
     document.querySelectorAll('[data-map-view]').forEach(btn => {
         if (btn.dataset.mapView === state.filters.mapView) {
             btn.classList.add('text-black', 'bg-[#eab308]', 'border-[#eab308]');
@@ -181,6 +183,7 @@ export function updateMapFilterButtons() {
         }
     });
 
+    // Klastry
     const clusterBtn = document.querySelector('[data-action="toggle-clustering"]');
     if (clusterBtn) {
         if (state.ui.clusteringEnabled) {
@@ -201,7 +204,6 @@ function createVehicleMarkerHtml(vehicle, isOwned) {
     return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
 }
 
-// ===== ZMODYFIKOWANA FUNKCJA REDRAW (KLASTROWANIE) =====
 export function redrawMap() {
     const visibleKeys = new Set();
     const useClusters = state.ui.clusteringEnabled;
@@ -357,7 +359,8 @@ const panelTitles = {
     guild: "Gildia", 
     transactions: "Historia Transakcji", 
     company: "Personalizacja Firmy",
-    profile: "Profil Operatora"
+    profile: "Profil Operatora",
+    premium: "Sklep Premium" // <--- NOWY WPIS DLA PREMIUM
 };
 
 export function render() {
@@ -394,6 +397,7 @@ export function render() {
     }
     
     switch (state.activeTab) { 
+        case 'premium': renderPremiumStore(listContainer); break; // OBSŁUGA PREMIUM
         case 'profile': renderProfileTab(listContainer); break;
         case 'stats': renderStats(listContainer); break; 
         case 'achievements': renderAchievements(listContainer); break; 
@@ -419,15 +423,4 @@ export function render() {
     
     updateMapFilterButtons();
     redrawMap();
-}
-
-// LOKALNA DEFINICJA FUNKCJI CALCULATEASSETVALUE (ZAMIAST IMPORTU Z LOGIC.JS)
-function calculateAssetValue() {
-    const fleetValue = Object.values(state.owned).reduce((sum, v) => sum + (config.basePrice[v.type] || 0), 0);
-    const infraValue = Object.values(state.infrastructure).reduce((sum, category) => {
-        return sum + Object.keys(category).reduce((catSum, key) => {
-            return catSum + (category[key].owned ? config.infrastructure[key].price : 0);
-        }, 0);
-    }, 0);
-    return state.wallet + fleetValue + infraValue;
 }

@@ -1,8 +1,8 @@
 import { state, achievementsList } from './state.js';
-import { config, lootboxConfig } from './config.js';
+import { config, lootboxConfig, PREMIUM_OFFERS } from './config.js'; // Importujemy PREMIUM_OFFERS
 import { $, fmt, getIconHtml, getVehicleRarity, ICONS } from './utils.js';
 import { map } from './state.js';
-import { supabase } from './supabase.js'; // Potrzebne do pobrania emaila
+import { supabase } from './supabase.js';
 
 // ===== RENDERERS DLA INDUSTRIAL THEME =====
 
@@ -31,6 +31,7 @@ function getVehicleEcoSpecs(type) {
     return { fuel, co2 };
 }
 
+// ... (renderVehicleList - bez zmian, ale wklejam dla kompletności) ...
 export function renderVehicleList(container) {
     const searchTerm = $('search').value.toLowerCase();
     let listSource = [];
@@ -256,17 +257,13 @@ export function renderStationDetails(id, container) {
         rows.forEach(t => {
             const rowData = t.timeTableRows.find(r => r.stationShortCode === id);
             if(!rowData) return;
-            
             const typeText = rowData.type === 'DEPARTURE' ? 'ODJ' : 'PRZ';
             const dest = rowData.type === 'DEPARTURE' ? t.timeTableRows[t.timeTableRows.length - 1].stationShortCode : t.timeTableRows[0].stationShortCode;
-            
             const scheduled = new Date(rowData.scheduledTime);
             const actual = rowData.actualTime ? new Date(rowData.actualTime) : null;
             const schedTime = scheduled.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
-            
             let actTime = '-';
             let timeClass = 'text-gray-400';
-            
             if (actual) {
                 actTime = actual.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
                 const delay = (actual - scheduled) / 60000;
@@ -278,15 +275,7 @@ export function renderStationDetails(id, container) {
                  actTime = est.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
                  timeClass = 'text-yellow-600 italic';
             }
-
-            tableHtml += `
-                <tr class="border-b border-[#222] hover:bg-[#1a1a1a]">
-                    <td class="py-1 pr-2 text-[#eab308] font-bold">${t.trainType} ${t.trainNumber}</td>
-                    <td class="py-1 px-2 truncate max-w-[100px]">${dest} (${typeText})</td>
-                    <td class="py-1 px-2 text-right text-gray-500">${schedTime}</td>
-                    <td class="py-1 pl-2 text-right ${timeClass}">${actTime}</td>
-                </tr>
-            `;
+            tableHtml += `<tr class="border-b border-[#222] hover:bg-[#1a1a1a]"><td class="py-1 pr-2 text-[#eab308] font-bold">${t.trainType} ${t.trainNumber}</td><td class="py-1 px-2 truncate max-w-[100px]">${dest} (${typeText})</td><td class="py-1 px-2 text-right text-gray-500">${schedTime}</td><td class="py-1 pl-2 text-right ${timeClass}">${actTime}</td></tr>`;
         });
     } 
     else if ((type === 'tube' || type === 'bus' || type === 'river-bus') && data.data) {
@@ -297,44 +286,42 @@ export function renderStationDetails(id, container) {
             let statusClass = 'text-green-500';
             if (min > 5) statusClass = 'text-gray-300';
             if (min === 0) statusClass = 'text-[#eab308] font-bold animate-pulse';
-
-            tableHtml += `
-                <tr class="border-b border-[#222] hover:bg-[#1a1a1a]">
-                    <td class="py-1 pr-2 text-blue-400 font-bold">${a.lineName || 'BUS'}</td>
-                    <td class="py-1 px-2 truncate max-w-[100px]">${a.destinationName || a.towards || 'Centrum'}</td>
-                    <td class="py-1 px-2 text-right text-gray-500">-</td>
-                    <td class="py-1 pl-2 text-right ${statusClass}">${timeDisplay}</td>
-                </tr>
-            `;
+            tableHtml += `<tr class="border-b border-[#222] hover:bg-[#1a1a1a]"><td class="py-1 pr-2 text-blue-400 font-bold">${a.lineName || 'BUS'}</td><td class="py-1 px-2 truncate max-w-[100px]">${a.destinationName || a.towards || 'Centrum'}</td><td class="py-1 px-2 text-right text-gray-500">-</td><td class="py-1 pl-2 text-right ${statusClass}">${timeDisplay}</td></tr>`;
         });
     }
 
     tableHtml += '</tbody></table>';
-    
     const configEarnings = state.infrastructure[type === 'train' ? 'trainStations' : (type==='tube'?'tubeStations':(type==='river-bus'?'riverPiers':'busTerminals'))]?.[id]?.hourlyEarnings || 0;
-    
-    tableHtml += `
-        <div class="mt-3 flex justify-between items-center border-t border-[#333] pt-2">
-            <div class="text-[9px] text-gray-500 uppercase font-bold">Szacowany Przychód</div>
-            <div class="text-[#eab308] font-mono font-bold text-sm">+${fmt(configEarnings)} VC/h</div>
-        </div>
-    `;
-
+    tableHtml += `<div class="mt-3 flex justify-between items-center border-t border-[#333] pt-2"><div class="text-[9px] text-gray-500 uppercase font-bold">Szacowany Przychód</div><div class="text-[#eab308] font-mono font-bold text-sm">+${fmt(configEarnings)} VC/h</div></div>`;
     container.innerHTML += tableHtml;
 }
 
-export function renderGuildTab(container) {
-    const { playerGuildId, guilds } = state.guild;
-    if (!playerGuildId) {
-        container.innerHTML = `<div class="p-4 space-y-6"><div class="bg-[#1a1a1a] border border-[#333] p-4"><h3 class="text-lg font-bold text-[#eab308] font-header uppercase mb-2">Rejestracja Gildii</h3><p class="text-xs text-gray-500 mb-4">Utwórz nową organizację handlową.</p><input type="text" id="guild-name-input" placeholder="NAZWA KORPORACJI..." class="w-full bg-black border border-[#333] text-white p-2 text-sm font-mono mb-2 focus:border-[#eab308] outline-none"><button id="create-guild-btn" class="w-full btn-action py-2 text-sm">Utwórz (${fmt(config.guilds.creationCost)} VC)</button></div><div><h3 class="text-xs font-bold text-gray-500 uppercase mb-2 tracking-widest">Dostępne Gildie</h3><div id="guild-list" class="space-y-2"></div></div></div>`;
-        const list = document.getElementById('guild-list');
-        if(list) { for (const gid in guilds) { const g = guilds[gid]; list.innerHTML += `<div class="flex justify-between items-center bg-[#151515] p-3 border border-[#333]"><span class="text-white font-header text-sm">${g.name} <span class="text-gray-600 text-xs">(${g.members.length} os.)</span></span><button class="text-[#eab308] hover:text-white text-xs font-bold uppercase border border-[#eab308] px-2 py-1 hover:bg-[#eab308] hover:text-black transition" data-join-guild="${gid}">Dołącz</button></div>`; } }
-    } else {
-        const myGuild = guilds[playerGuildId]; if(!myGuild) return;
-        container.innerHTML = `<div class="p-4 flex flex-col h-full"><div class="bg-[#1a1a1a] p-4 border border-[#333] border-l-4 border-l-[#eab308] mb-4"><h2 class="text-2xl font-bold text-white font-header">${myGuild.name}</h2><div class="flex justify-between items-end mt-2"><div class="text-xs text-gray-500 font-mono">CEO: ${myGuild.leader}</div><div class="text-right"><div class="text-[10px] text-gray-500 uppercase">Skarbiec</div><div class="text-xl font-mono font-bold text-[#eab308]">${fmt(myGuild.bank)} VC</div></div></div><div class="flex gap-2 mt-4 pt-4 border-t border-[#333]"><input type="number" id="treasury-amount" placeholder="KWOTA" class="w-24 bg-black text-white text-xs p-1 border border-[#333] font-mono"><button id="deposit-treasury-btn" class="bg-green-900/30 text-green-500 border border-green-900 text-xs px-3 py-1 uppercase hover:bg-green-900/50">Wpłać</button><button id="withdraw-treasury-btn" class="bg-red-900/30 text-red-500 border border-red-900 text-xs px-3 py-1 uppercase hover:bg-red-900/50">Wypłać</button></div></div><div class="flex-grow overflow-y-auto space-y-4 mb-4 custom-scrollbar"><div><h3 class="font-bold text-gray-500 text-xs uppercase mb-2">Aktywa Przemysłowe</h3><div id="guild-owned-list" class="space-y-2"></div></div></div><div class="h-40 bg-black border border-[#333] flex flex-col"><div id="guild-chat-messages" class="flex-grow overflow-y-auto p-2 text-xs font-mono space-y-1 custom-scrollbar"></div><div class="flex p-1 border-t border-[#333]"><input id="chat-message-input" class="flex-grow bg-transparent text-white px-2 text-xs font-mono outline-none" placeholder="TRANSMISJA..."><button id="send-chat-msg-btn" class="text-[#eab308] px-2"><i class="ri-send-plane-fill"></i></button></div></div></div>`;
-        const ownedDiv = document.getElementById('guild-owned-list');
-        if(ownedDiv) { for(const k in myGuild.ownedAssets) { const a = config.guildAssets[k]; ownedDiv.innerHTML += `<div class="bg-[#151515] border border-[#333] p-2 flex justify-between items-center"><div class="flex items-center gap-2"><i class="ri-government-line text-gray-500"></i><div><div class="font-bold text-white text-xs uppercase">${a.name}</div><div class="text-[10px] text-green-500 font-mono">+${fmt(a.incomePerTick)}/min</div></div></div></div>`; } }
+// ===== NOWA FUNKCJA: SKLEP PREMIUM =====
+export function renderPremiumStore(container) {
+    container.innerHTML = `<div class="p-4 space-y-6"><div class="bg-gradient-to-r from-[#1a1a1a] to-[#2a2100] border border-[#eab308] p-4 text-center shadow-[0_0_20px_rgba(234,179,8,0.2)]"><h3 class="text-lg font-header text-[#eab308] uppercase mb-1">Strefa VIP</h3><p class="text-xs text-gray-400 font-mono">Zdobądź przewagę konkurencyjną dzięki pakietom walutowym.</p></div><div class="grid grid-cols-1 gap-4">`;
+    
+    for (const key in PREMIUM_OFFERS) {
+        const offer = PREMIUM_OFFERS[key];
+        const isBundle = offer.badge ? true : false;
+        const bgClass = offer.bg || 'bg-[#151515]';
+        const containerClass = isBundle ? `border-2 ${offer.border} relative overflow-hidden` : `border ${offer.border}`;
+        let extraInfo = '';
+        if (offer.lootbox) { extraInfo = `<div class="text-xs mt-1 text-white">+ Skrzynka: <span class="font-bold uppercase text-${offer.color.split('-')[1]}-400">${lootboxConfig[offer.lootbox].name}</span></div>`; }
+
+        container.innerHTML += `<div class="${bgClass} ${containerClass} p-4 flex items-center justify-between shadow-lg transition hover:scale-[1.02]">${offer.badge ? `<div class="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 uppercase font-header">${offer.badge}</div>` : ''}<div class="flex items-center gap-4"><div class="text-4xl">${offer.icon}</div><div><h4 class="font-bold text-white uppercase text-sm">${offer.name}</h4><div class="font-mono text-lg font-bold ${offer.color}">${fmt(offer.vc)} VC</div>${extraInfo}</div></div><button class="bg-white text-black font-bold py-2 px-4 rounded hover:bg-gray-200 transition text-sm uppercase" data-buy-premium="${key}">${offer.price}</button></div>`;
     }
+    container.innerHTML += `<div class="text-[10px] text-gray-500 text-center mt-4 border-t border-[#333] pt-2">Transakcje są symulowane (Sandbox Mode). Nie zostaniesz obciążony.</div></div>`;
+}
+
+// ===== NOWA FUNKCJA: PROFIL =====
+export function renderProfileTab(container) {
+    (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const email = user ? user.email : 'Nieznany';
+        const id = user ? user.id : '---';
+        container.innerHTML = `<div class="p-4 space-y-6"><div class="bg-[#1a1a1a] border border-[#333] p-4"><h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Konto Operatora</h3><div class="space-y-2"><div><div class="text-[10px] text-gray-600 uppercase font-bold">Identyfikator</div><div class="text-sm text-white font-mono">${email}</div></div><div><div class="text-[10px] text-gray-600 uppercase font-bold">ID Systemowe</div><div class="text-[10px] text-gray-400 font-mono">${id}</div></div></div></div><div class="bg-[#1a1a1a] border border-[#333] p-4"><h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Finanse i Subskrypcje</h3><div class="flex justify-between items-center mb-4"><span class="text-sm text-white"><i class="ri-bank-card-fill mr-2"></i> Metoda Płatności</span><span class="text-xs text-gray-400 font-mono">**** 4242</span></div><button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-xs font-bold py-2 uppercase transition border border-[#333]">Zarządzaj Płatnościami</button></div><div class="bg-[#1a1a1a] border border-[#333] p-4"><h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Ustawienia Systemowe</h3><div class="flex justify-between items-center py-2 border-b border-[#333]"><span class="text-sm text-white">Powiadomienia</span><div class="w-8 h-4 bg-green-900 rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-green-500 rounded-full absolute right-0"></div></div></div><div class="flex justify-between items-center py-2"><span class="text-sm text-white">Dźwięk</span><div class="w-8 h-4 bg-gray-700 rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-gray-400 rounded-full absolute left-0"></div></div></div></div><button id="logout-btn-profile" class="w-full bg-red-900/20 hover:bg-red-900 text-red-500 hover:text-white border border-red-900 text-sm font-bold py-3 uppercase transition"><i class="ri-shut-down-line mr-2"></i> Wyloguj z Systemu</button></div>`;
+        setTimeout(() => { const logoutBtn = document.getElementById('logout-btn-profile'); if(logoutBtn) { logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload(); }); } }, 100);
+    })();
 }
 
 export function renderVehicleCard(key) {
@@ -345,15 +332,7 @@ export function renderVehicleCard(key) {
     const v = { ...baseData, ...(state.vehicles[type]?.get(id) || {}) };
     const eco = getVehicleEcoSpecs(type);
     const container = document.getElementById('vehicle-card-content');
-    
-    let locationDisplay = '';
-    if (type === 'plane') {
-        locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL';
-    } else {
-        const flag = FLAGS[v.country] || '🏳️';
-        locationDisplay = `${flag} ${v.country || 'Nieznany'}`;
-    }
-
+    let locationDisplay = ''; if (type === 'plane') { locationDisplay = '<i class="ri-global-line text-[#eab308]"></i> GLOBAL'; } else { const flag = FLAGS[v.country] || '🏳️'; locationDisplay = `${flag} ${v.country || 'Nieznany'}`; }
     container.innerHTML = `<div class="grid grid-cols-3 gap-6"><div class="col-span-1 flex flex-col gap-2"><div class="aspect-square bg-black border border-[#333] flex items-center justify-center relative group"><div class="text-6xl scale-125 transition-transform group-hover:scale-110">${getIconHtml(type)}</div><div class="absolute top-2 right-2 text-[10px] font-bold text-gray-500 border border-gray-800 bg-black px-1 uppercase">${type}</div></div><div class="text-center"><div class="text-[10px] text-gray-500 font-bold uppercase">Wartość</div><div class="text-lg font-mono font-bold text-[#eab308]">${fmt(config.basePrice[type])} VC</div></div></div><div class="col-span-2 flex flex-col justify-between"><div><h2 class="font-header text-2xl text-white leading-none mb-1 uppercase">${isOwned ? v.customName : v.title}</h2><div class="text-xs text-gray-500 font-mono mb-4 uppercase">ID: ${v.id} • ${locationDisplay}</div><div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm font-mono"><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Paliwo</span><span class="text-white">${eco.fuel}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Emisja</span><span class="text-white">${eco.co2}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Zużycie</span><span class="text-white">${isOwned ? Math.round(v.wear) + '%' : '0%'}</span></div><div class="flex justify-between border-b border-[#333] pb-1"><span class="text-gray-500">Przebieg</span><span class="text-white">${isOwned ? fmt(v.odo_km) : '0'} km</span></div></div></div><div class="flex gap-2 mt-4">${isOwned ? `<button class="flex-1 btn-action py-2" id="upgrade-btn">Ulepsz</button><button class="flex-1 btn-cancel py-2 border border-[#333]" data-svc="${key}">Serwis</button><button class="px-3 btn-cancel py-2 border border-[#333] text-red-500 hover:bg-red-900/20" id="sell-quick-btn"><i class="ri-delete-bin-line"></i></button><button class="px-3 btn-cancel py-2 border border-[#333] text-blue-500 hover:bg-blue-900/20" id="sell-market-btn"><i class="ri-auction-line"></i></button>` : `<button class="w-full btn-action py-2" data-buy="${key}|${config.basePrice[type]}">ZAKUP JEDNOSTKĘ</button>`}</div></div></div>`;
     document.getElementById('vehicle-card').classList.remove('translate-y-[150%]');
 }
@@ -397,29 +376,8 @@ export function renderMarket(container) {
 export function renderStats(container) {
     const timeframe = state.ui.statsTimeframe || '24h';
     const stats = calculatePeriodStats(timeframe);
-    
-    container.innerHTML = `
-        <div class="p-4 flex flex-col h-full">
-            <div class="flex bg-[#111] p-1 rounded border border-[#333] mb-4">
-                <button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='1h'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="1h">1H</button>
-                <button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='24h'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="24h">24H</button>
-                <button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='7d'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="7d">7D</button>
-            </div>
-            <div class="grid grid-cols-2 gap-3 overflow-y-auto custom-scrollbar">
-                ${renderStatTile('Przychód', stats.revenue, 'VC', 'ri-money-dollar-circle-line', 'text-yellow-500')}
-                ${renderStatTile('Koszt Paliwa', stats.fuelCost, 'VC', 'ri-gas-station-line', 'text-red-500')}
-                ${renderStatTile('Zysk Netto', stats.profit, 'VC', 'ri-line-chart-line', stats.profit >= 0 ? 'text-green-500' : 'text-red-500', true)}
-                ${renderStatTile('Przebieg', stats.distance, 'km', 'ri-road-map-line', 'text-blue-400')}
-            </div>
-        </div>
-    `;
-    
-    container.querySelectorAll('[data-set-timeframe]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            state.ui.statsTimeframe = e.target.dataset.setTimeframe;
-            renderStats(container);
-        });
-    });
+    container.innerHTML = `<div class="p-4 flex flex-col h-full"><div class="flex bg-[#111] p-1 rounded border border-[#333] mb-4"><button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='1h'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="1h">1H</button><button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='24h'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="24h">24H</button><button class="flex-1 text-xs font-bold py-1.5 rounded transition-colors ${timeframe==='7d'?'bg-[#eab308] text-black':'text-gray-500 hover:text-white'}" data-set-timeframe="7d">7D</button></div><div class="grid grid-cols-2 gap-3 overflow-y-auto custom-scrollbar">${renderStatTile('Przychód', stats.revenue, 'VC', 'ri-money-dollar-circle-line', 'text-yellow-500')}${renderStatTile('Koszt Paliwa', stats.fuelCost, 'VC', 'ri-gas-station-line', 'text-red-500')}${renderStatTile('Zysk Netto', stats.profit, 'VC', 'ri-line-chart-line', stats.profit >= 0 ? 'text-green-500' : 'text-red-500', true)}${renderStatTile('Przebieg', stats.distance, 'km', 'ri-road-map-line', 'text-blue-400')}</div></div>`;
+    container.querySelectorAll('[data-set-timeframe]').forEach(btn => { btn.addEventListener('click', (e) => { state.ui.statsTimeframe = e.target.dataset.setTimeframe; renderStats(container); }); });
 }
 
 function calculatePeriodStats(timeframe) {
@@ -488,69 +446,6 @@ export function renderAchievements(container) {
         list.appendChild(el);
     }
     container.appendChild(list);
-}
-
-// ===== NOWA FUNKCJA: PROFIL =====
-export function renderProfileTab(container) {
-    (async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const email = user ? user.email : 'Nieznany';
-        const id = user ? user.id : '---';
-        
-        container.innerHTML = `
-            <div class="p-4 space-y-6">
-                <div class="bg-[#1a1a1a] border border-[#333] p-4">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Konto Operatora</h3>
-                    <div class="space-y-2">
-                        <div>
-                            <div class="text-[10px] text-gray-600 uppercase font-bold">Identyfikator</div>
-                            <div class="text-sm text-white font-mono">${email}</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-gray-600 uppercase font-bold">ID Systemowe</div>
-                            <div class="text-[10px] text-gray-400 font-mono">${id}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-[#1a1a1a] border border-[#333] p-4">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Finanse i Subskrypcje</h3>
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-sm text-white"><i class="ri-bank-card-fill mr-2"></i> Metoda Płatności</span>
-                        <span class="text-xs text-gray-400 font-mono">**** 4242</span>
-                    </div>
-                    <button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-xs font-bold py-2 uppercase transition border border-[#333]">Zarządzaj Płatnościami</button>
-                </div>
-                
-                <div class="bg-[#1a1a1a] border border-[#333] p-4">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Ustawienia Systemowe</h3>
-                    <div class="flex justify-between items-center py-2 border-b border-[#333]">
-                        <span class="text-sm text-white">Powiadomienia</span>
-                        <div class="w-8 h-4 bg-green-900 rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-green-500 rounded-full absolute right-0"></div></div>
-                    </div>
-                    <div class="flex justify-between items-center py-2">
-                        <span class="text-sm text-white">Dźwięk</span>
-                        <div class="w-8 h-4 bg-gray-700 rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-gray-400 rounded-full absolute left-0"></div></div>
-                    </div>
-                </div>
-
-                <button id="logout-btn-profile" class="w-full bg-red-900/20 hover:bg-red-900 text-red-500 hover:text-white border border-red-900 text-sm font-bold py-3 uppercase transition">
-                    <i class="ri-shut-down-line mr-2"></i> Wyloguj z Systemu
-                </button>
-            </div>
-        `;
-        
-        // Attach listener immediately after rendering
-        setTimeout(() => {
-            const logoutBtn = document.getElementById('logout-btn-profile');
-            if(logoutBtn) {
-                logoutBtn.addEventListener('click', async () => {
-                    await supabase.auth.signOut();
-                    location.reload();
-                });
-            }
-        }, 100);
-    })();
 }
 
 // Alias dla kompatybilności
