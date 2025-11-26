@@ -87,7 +87,8 @@ export function updatePlayerMarkerIcon() {
     }
 }
 
-// ===== NOWA FUNKCJA: Inicjalizacja filtrów na mapie =====
+// ===== 2. INICJALIZACJA FILTRÓW MAPY (HUD) =====
+
 export function initMapFilters() {
     const typesContainer = $('map-filters-types');
     const ownershipContainer = $('map-filters-ownership');
@@ -124,11 +125,8 @@ export function initMapFilters() {
     });
 
     // 2. DOLNE FILTRY (OWNERSHIP + KLASTRY)
-    // Czyścimy tylko listenery, ale zachowujemy strukturę HTML jeśli istnieje, lub dodajemy przyciski dynamicznie
-    // Dla bezpieczeństwa - wyczyścimy i dodamy od nowa w JS
     ownershipContainer.innerHTML = '';
 
-    // Przycisk "Wszystkie"
     const btnAll = document.createElement('button');
     btnAll.dataset.mapView = 'all';
     btnAll.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors';
@@ -136,7 +134,6 @@ export function initMapFilters() {
     btnAll.addEventListener('click', () => { state.filters.mapView = 'all'; updateMapFilterButtons(); redrawMap(); });
     ownershipContainer.appendChild(btnAll);
 
-    // Przycisk "Moja Flota"
     const btnFleet = document.createElement('button');
     btnFleet.dataset.mapView = 'fleet';
     btnFleet.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors';
@@ -144,23 +141,16 @@ export function initMapFilters() {
     btnFleet.addEventListener('click', () => { state.filters.mapView = 'fleet'; updateMapFilterButtons(); redrawMap(); });
     ownershipContainer.appendChild(btnFleet);
 
-    // Przycisk "Klastry" (NOWOŚĆ)
     const btnCluster = document.createElement('button');
     btnCluster.dataset.action = 'toggle-clustering';
     btnCluster.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors ml-2 border-l border-[#333]';
     btnCluster.textContent = 'Klastry';
     btnCluster.addEventListener('click', () => {
         state.ui.clusteringEnabled = !state.ui.clusteringEnabled;
-        
-        // Obsługa warstwy klastra w Leaflet
         if (state.markerClusterGroup) {
-            if (state.ui.clusteringEnabled) {
-                map.addLayer(state.markerClusterGroup);
-            } else {
-                map.removeLayer(state.markerClusterGroup);
-            }
+            if (state.ui.clusteringEnabled) map.addLayer(state.markerClusterGroup);
+            else map.removeLayer(state.markerClusterGroup);
         }
-        
         updateMapFilterButtons();
         redrawMap();
     });
@@ -182,7 +172,7 @@ export function updateMapFilterButtons() {
         }
     });
 
-    // Ownership (Wszystkie/Moja Flota)
+    // Ownership
     document.querySelectorAll('[data-map-view]').forEach(btn => {
         if (btn.dataset.mapView === state.filters.mapView) {
             btn.classList.add('text-black', 'bg-[#eab308]', 'border-[#eab308]');
@@ -193,7 +183,7 @@ export function updateMapFilterButtons() {
         }
     });
 
-    // Klastrowanie (Toggle)
+    // Klastrowanie
     const clusterBtn = document.querySelector('[data-action="toggle-clustering"]');
     if (clusterBtn) {
         if (state.ui.clusteringEnabled) {
@@ -208,23 +198,13 @@ export function updateMapFilterButtons() {
 
 function createVehicleMarkerHtml(vehicle, isOwned) {
     const iconPath = ICONS[vehicle.type] || '❓';
-    
     if (iconPath.includes('.png') || iconPath.includes('/assets/')) {
-        return `
-            <div class="w-10 h-10 flex items-center justify-center">
-                <img src="${iconPath}" 
-                     class="w-8 h-8 object-contain drop-shadow-lg" 
-                     style="opacity: 0; transition: opacity 0.3s;"
-                     onload="this.style.opacity = 1;"
-                     onerror="this.parentNode.innerHTML='🛵';">
-            </div>
-        `;
+        return `<div class="w-10 h-10 flex items-center justify-center"><img src="${iconPath}" class="w-8 h-8 object-contain drop-shadow-lg" style="opacity: 0; transition: opacity 0.3s;" onload="this.style.opacity = 1;" onerror="this.parentNode.innerHTML='🛵';"></div>`;
     }
-    
     return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
 }
 
-// ===== ZAKTUALIZOWANA FUNKCJA: redrawMap =====
+// ===== ZMODYFIKOWANA FUNKCJA REDRAW (KLASTROWANIE) =====
 export function redrawMap() {
     const visibleKeys = new Set();
     const useClusters = state.ui.clusteringEnabled;
@@ -236,7 +216,6 @@ export function redrawMap() {
             const isOwned = !!state.owned[key];
 
             if (state.filters.mapView === 'fleet' && !isOwned) continue;
-
             const typeMatch = state.filters.types.includes(v.type);
             const countryMatch = !v.country || state.filters.countries.includes(v.country);
 
@@ -244,92 +223,35 @@ export function redrawMap() {
 
             if (typeMatch && countryMatch && v.lat != null && isFinite(v.lat) && v.lon != null && isFinite(v.lon)) {
                 visibleKeys.add(key);
-                
                 const iconHtml = createVehicleMarkerHtml(v, isOwned);
 
                 if (!entry) {
-                    // Create Marker
                     const marker = L.marker([v.lat, v.lon], { icon: createIcon(isOwned && v.isMoving) });
+                    marker.setIcon(L.divIcon({ className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`, iconSize: [40, 40], iconAnchor: [20, 20], html: iconHtml }));
+                    marker.on('click', () => { const vData = state.vehicles[v.type]?.get(v.id); if (!vData) return; state.selectedVehicleKey = key; render(); });
                     
-                    // Manualnie ustawiamy HTML ikony (hack na ograniczenia L.divIcon w klastrach)
-                    marker.setIcon(L.divIcon({
-                        className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`,
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 20],
-                        html: iconHtml
-                    }));
-
-                    marker.on('click', () => { 
-                        const vData = state.vehicles[v.type]?.get(v.id);
-                        if (!vData) return;
-                        state.selectedVehicleKey = key;
-                        render(); 
-                    });
-                    
-                    // Dodaj do odpowiedniej warstwy
-                    if (useClusters && clusters) {
-                        clusters.addLayer(marker);
-                    } else {
-                        marker.addTo(map);
-                    }
-
+                    if (useClusters && clusters) clusters.addLayer(marker); else marker.addTo(map);
                     entry = { marker, trail: null };
                     state.markers.set(key, entry);
                 } else {
-                    // Update Position
                     const oldLatLng = entry.marker.getLatLng();
-                    if (oldLatLng.lat !== v.lat || oldLatLng.lng !== v.lon) {
-                        entry.marker.setLatLng([v.lat, v.lon]);
-                    }
-                    
-                    // Obsługa przełączania klastrowania (Dynamic Switching)
-                    // Sprawdzamy, czy marker jest tam gdzie powinien być
+                    if (oldLatLng.lat !== v.lat || oldLatLng.lng !== v.lon) entry.marker.setLatLng([v.lat, v.lon]);
                     if (clusters) {
                         const isInCluster = clusters.hasLayer(entry.marker);
-                        
-                        if (useClusters && !isInCluster) {
-                            // Powinien być w klastrze, ale nie jest -> przenieś
-                            entry.marker.removeFrom(map);
-                            clusters.addLayer(entry.marker);
-                        } else if (!useClusters && isInCluster) {
-                            // Nie powinien być w klastrze -> przenieś na mapę
-                            clusters.removeLayer(entry.marker);
-                            entry.marker.addTo(map);
-                        }
+                        if (useClusters && !isInCluster) { entry.marker.removeFrom(map); clusters.addLayer(entry.marker); } 
+                        else if (!useClusters && isInCluster) { clusters.removeLayer(entry.marker); entry.marker.addTo(map); }
                     }
-                    
-                    // Update Icon (np. animacja ruchu)
                     const iconEl = entry.marker.getElement();
-                    if (iconEl && iconEl.innerHTML !== iconHtml) {
-                         // Jeśli używamy klastrów, refreshIcon może być potrzebny
-                         entry.marker.setIcon(L.divIcon({
-                            className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`,
-                            iconSize: [40, 40],
-                            iconAnchor: [20, 20],
-                            html: iconHtml
-                        }));
-                    }
+                    if (iconEl && iconEl.innerHTML !== iconHtml) { entry.marker.setIcon(L.divIcon({ className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`, iconSize: [40, 40], iconAnchor: [20, 20], html: iconHtml })); }
                 }
-                
-                // Trail
-                if (isOwned && v.history && v.history.length > 1) { 
-                    const latlngs = v.history.map(p => [p.lat, p.lon]); 
-                    if (entry.trail) { entry.trail.setLatLngs(latlngs); } 
-                    else { entry.trail = L.polyline(latlngs, { color: 'rgba(234, 179, 8, 0.5)', weight: 3 }).addTo(map); } 
-                } else if (entry.trail) { 
-                    entry.trail.remove(); entry.trail = null; 
-                }
-
+                if (isOwned && v.history && v.history.length > 1) { const latlngs = v.history.map(p => [p.lat, p.lon]); if (entry.trail) { entry.trail.setLatLngs(latlngs); } else { entry.trail = L.polyline(latlngs, { color: 'rgba(234, 179, 8, 0.5)', weight: 3 }).addTo(map); } } else if (entry.trail) { entry.trail.remove(); entry.trail = null; }
             }
         }
     });
 
     for (const [key, entry] of state.markers.entries()) {
         if (!visibleKeys.has(key) && !key.startsWith('station:') && !key.startsWith('guildasset:')) {
-            if(entry.marker) {
-                entry.marker.removeFrom(map);
-                if(clusters) clusters.removeLayer(entry.marker);
-            }
+            if(entry.marker) { entry.marker.removeFrom(map); if(clusters) clusters.removeLayer(entry.marker); }
             if(entry.trail) entry.trail.remove();
             state.markers.delete(key);
         }
@@ -339,80 +261,31 @@ export function redrawMap() {
 
     for (const stationCode in config.infrastructure) {
         const key = `station:${stationCode}`;
-        
-        if (!showInfrastructure) {
-            if (state.markers.has(key)) {
-                state.markers.get(key).marker.remove();
-                state.markers.delete(key);
-            }
-            continue;
-        }
+        if (!showInfrastructure) { if (state.markers.has(key)) { state.markers.get(key).marker.remove(); state.markers.delete(key); } continue; }
 
         const station = config.infrastructure[stationCode];
         if (station && !state.markers.has(key)) {
-            const marker = L.marker([station.lat, station.lon], { 
-                icon: L.divIcon({ 
-                    className: 'leaflet-marker-icon', 
-                    html: `<div class="w-16 h-16 drop-shadow-lg">${getIconHtml('station_' + station.type)}</div>`, 
-                    iconSize: [64, 64], 
-                    iconAnchor: [32, 32] 
-                }),
-                pane: 'buildingsPane', 
-                zIndexOffset: 100
-            }).addTo(map);
-            marker.bindPopup(`<b>${station.name}</b>`).on('click', () => { 
-                state.activeTab = 'stations';
-                state.selectedStationId = stationCode;
-                render();
-                toggleContentPanel(true);
-            });
+            const marker = L.marker([station.lat, station.lon], { icon: L.divIcon({ className: 'leaflet-marker-icon', html: `<div class="w-16 h-16 drop-shadow-lg">${getIconHtml('station_' + station.type)}</div>`, iconSize: [64, 64], iconAnchor: [32, 32] }), pane: 'buildingsPane', zIndexOffset: 100 }).addTo(map);
+            marker.bindPopup(`<b>${station.name}</b>`).on('click', () => { state.activeTab = 'stations'; state.selectedStationId = stationCode; render(); toggleContentPanel(true); });
             state.markers.set(key, { marker });
         }
     }
 
     for (const assetKey in config.guildAssets) {
         const key = `guildasset:${assetKey}`;
-
-        if (!showInfrastructure) {
-            if (state.markers.has(key)) {
-                state.markers.get(key).marker.remove();
-                state.markers.delete(key);
-            }
-            continue;
-        }
+        if (!showInfrastructure) { if (state.markers.has(key)) { state.markers.get(key).marker.remove(); state.markers.delete(key); } continue; }
 
         const asset = config.guildAssets[assetKey];
         let ownerGuildName = null;
-        for (const guildId in state.guild.guilds) {
-            if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) {
-                ownerGuildName = state.guild.guilds[guildId].name;
-                break;
-            }
-        }
+        for (const guildId in state.guild.guilds) { if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) { ownerGuildName = state.guild.guilds[guildId].name; break; } }
         let popupContent = `<b>${asset.name}</b><br>${asset.realProduction}`;
-        if (ownerGuildName) popupContent += `<br><span class="text-blue-400">Właściciel: ${ownerGuildName}</span>`;
-        else popupContent += `<br><span class="text-green-400">Na sprzedaż</span>`;
+        if (ownerGuildName) popupContent += `<br><span class="text-blue-400">Właściciel: ${ownerGuildName}</span>`; else popupContent += `<br><span class="text-green-400">Na sprzedaż</span>`;
 
         if (!state.markers.has(key)) {
-             const marker = L.marker([asset.lat, asset.lon], {
-                 icon: L.divIcon({ 
-                     className: 'leaflet-marker-icon', 
-                     html: `<div class="w-16 h-16 drop-shadow-xl">${getIconHtml('asset_power-plant')}</div>`, 
-                     iconSize: [64, 64], 
-                     iconAnchor: [32, 32] 
-                 }),
-                 pane: 'buildingsPane', 
-                 zIndexOffset: 100
-            }).addTo(map);
-            marker.bindPopup(popupContent).on('click', () => { 
-                state.activeTab = 'guild';
-                render();
-                toggleContentPanel(true);
-            });
+             const marker = L.marker([asset.lat, asset.lon], { icon: L.divIcon({ className: 'leaflet-marker-icon', html: `<div class="w-16 h-16 drop-shadow-xl">${getIconHtml('asset_power-plant')}</div>`, iconSize: [64, 64], iconAnchor: [32, 32] }), pane: 'buildingsPane', zIndexOffset: 100 }).addTo(map);
+            marker.bindPopup(popupContent).on('click', () => { state.activeTab = 'guild'; render(); toggleContentPanel(true); });
             state.markers.set(key, { marker });
-        } else {
-            state.markers.get(key).marker.getPopup().setContent(popupContent);
-        }
+        } else { state.markers.get(key).marker.getPopup().setContent(popupContent); }
     }
 }
 
@@ -426,11 +299,7 @@ export function updateUI(inM, outM) {
     if (walletEl) {
         const formattedWallet = fmt(state.wallet);
         walletEl.textContent = formattedWallet;
-        
-        if (walletEl.dataset.lastValue && walletEl.dataset.lastValue !== formattedWallet) {
-            walletEl.style.color = '#22c55e';
-            setTimeout(() => { walletEl.style.color = ''; }, 500);
-        }
+        if (walletEl.dataset.lastValue && walletEl.dataset.lastValue !== formattedWallet) { walletEl.style.color = '#22c55e'; setTimeout(() => { walletEl.style.color = ''; }, 500); }
         walletEl.dataset.lastValue = formattedWallet;
     }
     
@@ -438,45 +307,22 @@ export function updateUI(inM, outM) {
     set('level', state.profile.level);
     set('xp', Math.round(state.profile.xp));
     set('xpNext', 100 + (state.profile.level-1)*50);
-    const xpBar = $('xpProgressBar'); 
-    if(xpBar) xpBar.style.width = `${(state.profile.xp / (100+(state.profile.level-1)*50))*100}%`;
-    
+    const xpBar = $('xpProgressBar'); if(xpBar) xpBar.style.width = `${(state.profile.xp / (100+(state.profile.level-1)*50))*100}%`;
     set('owned-vehicles-count', Object.keys(state.owned).length);
     const buildingCount = Object.values(state.infrastructure).reduce((sum, category) => sum + Object.values(category).filter(item => item.owned).length, 0);
     set('owned-buildings-count', buildingCount);
     
     const earningsHistory = state.profile.earnings_history || [];
-    
-    const validEarnings = earningsHistory.filter(e => 
-        typeof e === 'number' && 
-        isFinite(e) && 
-        !isNaN(e) && 
-        e !== null && 
-        e !== undefined
-    );
-    
+    const validEarnings = earningsHistory.filter(e => typeof e === 'number' && isFinite(e) && !isNaN(e) && e !== null && e !== undefined);
     let hourlyEstimate = 0;
-    if (validEarnings.length > 0) {
-        const totalEarnings = validEarnings.reduce((sum, earning) => sum + earning, 0);
-        const avgPerMinute = totalEarnings / validEarnings.length;
-        hourlyEstimate = avgPerMinute * 60;
-    }
+    if (validEarnings.length > 0) { const totalEarnings = validEarnings.reduce((sum, earning) => sum + earning, 0); const avgPerMinute = totalEarnings / validEarnings.length; hourlyEstimate = avgPerMinute * 60; }
     
     const odometer = $('hourly-earnings-odometer');
     if(odometer) {
         const earnings = Math.max(0, Math.round(hourlyEstimate));
         const formattedEarnings = earnings.toLocaleString('pl-PL').padStart(6, '0');
-        
         odometer.innerHTML = '';
-        
-        for (const char of formattedEarnings) {
-            if (char !== ' ' && char !== '.' && char !== ',') {
-                const digitEl = document.createElement('span');
-                digitEl.className = 'odometer-digit';
-                digitEl.textContent = char;
-                odometer.appendChild(digitEl);
-            }
-        }
+        for (const char of formattedEarnings) { if (char !== ' ' && char !== '.' && char !== ',') { const digitEl = document.createElement('span'); digitEl.className = 'odometer-digit'; digitEl.textContent = char; odometer.appendChild(digitEl); } }
     }
 
     const hasUnclaimed = Object.values(state.achievements).some(a => a.unlocked && !a.claimed);
@@ -492,28 +338,12 @@ export function forceUpdateWallet() {
         const originalColor = walletEl.style.color;
         walletEl.style.color = '#ffffff'; 
         setTimeout(() => { walletEl.style.color = originalColor; }, 300);
-        console.log(`💰 Wallet force updated: ${newValue}`);
     }
 }
 
 // ===== 4. GŁÓWNY RENDERER =====
 
-const panelTitles = { 
-    stations: "Infrastruktura", 
-    real_estate: "Rynek Nieruchomości", 
-    store: "Sklep", 
-    fleet: "Moja Flota", 
-    market: "Giełda", 
-    lootbox: "Skrzynki", 
-    achievements: "Osiągnięcia", 
-    stats: "Statystyki", 
-    friends: "Znajomi", 
-    rankings: "Ranking", 
-    energy: "Ceny Energii", 
-    guild: "Gildia", 
-    transactions: "Historia Transakcji", 
-    company: "Personalizacja Firmy" 
-};
+const panelTitles = { stations: "Infrastruktura", real_estate: "Rynek Nieruchomości", store: "Sklep", fleet: "Moja Flota", market: "Giełda", lootbox: "Skrzynki", achievements: "Osiągnięcia", stats: "Statystyki", friends: "Znajomi", rankings: "Ranking", energy: "Ceny Energii", guild: "Gildia", transactions: "Historia Transakcji", company: "Personalizacja Firmy" };
 
 export function render() {
     const listContainer = $('mainList');
@@ -527,51 +357,23 @@ export function render() {
     const showControls = ['store', 'fleet', 'stations', 'market', 'real_estate'].includes(state.activeTab);
     if(controls) controls.style.display = showControls ? 'block' : 'none';
 
-    // === SEKCJA FILTRÓW W PANELU (Kafelki/Buttony) ===
     if (showControls && filtersContainer) {
         filtersContainer.innerHTML = '';
         let filterHtml = '<div class="space-y-4">';
-
         if (state.activeTab !== 'stations' && state.activeTab !== 'real_estate') { 
-            // 1. TYPY POJAZDÓW (Ikony w Gridzie)
             filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Typ Pojazdu</h4><div class="grid grid-cols-4 gap-2">';
             const types = ['plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
-            types.forEach(t => {
-                const active = state.filters.types.includes(t);
-                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
-                filterHtml += `<button class="panel-filter-btn h-10 w-full ${activeClass}" data-filter-category="types" data-filter-value="${t}" title="${t}">${getIconHtml(t, "w-6 h-6")}</button>`;
-            });
+            types.forEach(t => { const active = state.filters.types.includes(t); const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white'; filterHtml += `<button class="panel-filter-btn h-10 w-full ${activeClass}" data-filter-category="types" data-filter-value="${t}" title="${t}">${getIconHtml(t, "w-6 h-6")}</button>`; });
             filterHtml += '</div></div>';
-
-            // 2. RZADKOŚĆ (Tagi Flex)
             filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Rzadkość</h4><div class="flex flex-wrap gap-2">';
-            const rarities = [
-                { id: 'common', label: 'Common', color: 'border-gray-500 text-gray-400' },
-                { id: 'rare', label: 'Rare', color: 'border-blue-500 text-blue-400' },
-                { id: 'epic', label: 'Epic', color: 'border-purple-500 text-purple-400' },
-                { id: 'legendary', label: 'Legendary', color: 'border-amber-500 text-amber-400' }
-            ];
-            rarities.forEach(r => {
-                const active = state.filters.rarities.includes(r.id);
-                const baseClass = `px-3 py-1 text-xs font-bold border rounded-full transition-colors`;
-                const activeClass = active ? 'filter-btn-active border-transparent' : `bg-transparent ${r.color} hover:bg-gray-800`;
-                filterHtml += `<button class="${baseClass} ${activeClass}" data-filter-category="rarities" data-filter-value="${r.id}">${r.label}</button>`;
-            });
+            const rarities = [ { id: 'common', label: 'Common', color: 'border-gray-500 text-gray-400' }, { id: 'rare', label: 'Rare', color: 'border-blue-500 text-blue-400' }, { id: 'epic', label: 'Epic', color: 'border-purple-500 text-purple-400' }, { id: 'legendary', label: 'Legendary', color: 'border-amber-500 text-amber-400' } ];
+            rarities.forEach(r => { const active = state.filters.rarities.includes(r.id); const baseClass = `px-3 py-1 text-xs font-bold border rounded-full transition-colors`; const activeClass = active ? 'filter-btn-active border-transparent' : `bg-transparent ${r.color} hover:bg-gray-800`; filterHtml += `<button class="${baseClass} ${activeClass}" data-filter-category="rarities" data-filter-value="${r.id}">${r.label}</button>`; });
             filterHtml += '</div></div>';
-
-            // 3. KRAJ (Tagi Flex)
             filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Region</h4><div class="flex flex-wrap gap-2">';
             const countries = ['Poland', 'USA', 'Finland', 'UK', 'Greece', 'Europe'];
-            countries.forEach(c => {
-                const active = state.filters.countries.includes(c);
-                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
-                filterHtml += `<button class="px-3 py-1 text-xs font-bold rounded-md transition-colors ${activeClass}" data-filter-category="countries" data-filter-value="${c}">${c}</button>`;
-            });
+            countries.forEach(c => { const active = state.filters.countries.includes(c); const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white'; filterHtml += `<button class="px-3 py-1 text-xs font-bold rounded-md transition-colors ${activeClass}" data-filter-category="countries" data-filter-value="${c}">${c}</button>`; });
             filterHtml += '</div></div>';
-        } else {
-             filterHtml += '<div class="text-sm text-gray-400 text-center italic">Filtrowanie stacji wkrótce...</div>';
-        }
-
+        } else { filterHtml += '<div class="text-sm text-gray-400 text-center italic">Filtrowanie stacji wkrótce...</div>'; }
         filterHtml += '</div>';
         filtersContainer.innerHTML = filterHtml;
     }
@@ -599,7 +401,6 @@ export function render() {
         else { vehicleCard.classList.add('translate-y-[150%]'); }
     }
     
-    // Aktualizacja filtrów HUD
     updateMapFilterButtons();
     redrawMap();
 }
