@@ -44,7 +44,7 @@ export const state = {
   proximityCircle: null,
   
   // CLUSTERING
-  markerClusterGroup: null, // Tutaj będzie instancja L.markerClusterGroup
+  markerClusterGroup: null, 
 
   ui: {
       statsTimeframe: '24h'
@@ -58,17 +58,22 @@ initializeAchievements(state);
 export const achievementManager = new AchievementManager(state);
 export const achievementsList = ACHIEVEMENTS;
 export const lootboxManager = createLootboxManager(state);
-export const map = (typeof L !== 'undefined') ? L.map('map', { zoomControl: true }).setView([52.23, 21.01], 6) : null;
 
-// Inicjalizacja klastrowania PO utworzeniu mapy
+// --- NAPRAWIONA INICJALIZACJA MAPY Z maxZoom ---
+export const map = (typeof L !== 'undefined') ? L.map('map', { 
+    zoomControl: true,
+    maxZoom: 22 // KLUCZOWE DLA MARKER CLUSTER!
+}).setView([52.23, 21.01], 6) : null;
+
+// Inicjalizacja klastrowania
 if (map && typeof L.markerClusterGroup !== 'undefined') {
     state.markerClusterGroup = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
-        disableClusteringAtZoom: 16, // Powyżej tego zoomu klastry znikają (widzimy pojedyncze pojazdy)
+        disableClusteringAtZoom: 16,
         
-        // Stylizacja klastra (opcjonalne, ale pasuje do industrial theme)
+        // Stylizacja klastra (industrial)
         iconCreateFunction: function(cluster) {
             var childCount = cluster.getChildCount();
             var c = ' marker-cluster-';
