@@ -1,7 +1,7 @@
 import { config } from './config.js'; 
 import { ACHIEVEMENTS, AchievementManager, initializeAchievements } from './achievements.js';
 import { showNotification } from './notifications.js';
-import { createLootboxManager } from './lootbox-manager.js';
+// USUNIĘTO: import lootbox-manager (przerywamy cykl)
 
 export const state = {
   vehicles: { plane: new Map(), train: new Map(), tube: new Map(), bus: new Map(), bike: new Map(), 'river-bus': new Map(), tram: new Map(), scooter: new Map() },
@@ -42,15 +42,8 @@ export const state = {
   playerMarker: null,
   playerLocation: null,
   proximityCircle: null,
-  
-  // CLUSTERING
   markerClusterGroup: null, 
-
-  ui: {
-      statsTimeframe: '24h',
-      clusteringEnabled: true // DOMYŚLNIE WŁĄCZONE
-  },
-  
+  ui: { statsTimeframe: '24h', clusteringEnabled: true },
   missions: { available: [], active: [], completed: 0 },
   social: { friends: [], requests: [], searchResults: [], activeChatFriendId: null, messages: {} }
 };
@@ -58,36 +51,26 @@ export const state = {
 initializeAchievements(state);
 export const achievementManager = new AchievementManager(state);
 export const achievementsList = ACHIEVEMENTS;
-export const lootboxManager = createLootboxManager(state);
-// NAPRAWA: Dodano maxZoom, aby klastry działały poprawnie
+// USUNIĘTO: export lootboxManager (przerywamy cykl)
+
 export const map = (typeof L !== 'undefined') ? L.map('map', { zoomControl: true, maxZoom: 22 }).setView([52.23, 21.01], 6) : null;
 
-// Inicjalizacja klastrowania
 if (map && typeof L.markerClusterGroup !== 'undefined') {
     state.markerClusterGroup = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
         disableClusteringAtZoom: 16,
-        
         iconCreateFunction: function(cluster) {
             var childCount = cluster.getChildCount();
             var c = ' marker-cluster-';
             if (childCount < 10) { c += 'small'; } 
             else if (childCount < 100) { c += 'medium'; } 
             else { c += 'large'; }
-
-            return new L.DivIcon({ 
-                html: '<div><span>' + childCount + '</span></div>', 
-                className: 'marker-cluster' + c, 
-                iconSize: new L.Point(40, 40) 
-            });
+            return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
         }
     });
-    // Nie dodajemy od razu do mapy, zrobi to ui-core.js w zależności od ustawień
-    if (state.ui.clusteringEnabled) {
-        map.addLayer(state.markerClusterGroup);
-    }
+    if (state.ui.clusteringEnabled) { map.addLayer(state.markerClusterGroup); }
 }
 
 export function logTransaction(amount, description) { 
@@ -96,6 +79,7 @@ export function logTransaction(amount, description) {
     if (state.profile.transaction_history.length > 200) state.profile.transaction_history.pop(); 
 }
 
+// Ta funkcja zostaje tutaj, ale ui-core będzie używać własnej kopii, żeby nie importować state.js -> logic.js -> ui-core.js
 export function calculateAssetValue() {
     const fleetValue = Object.values(state.owned).reduce((sum, v) => sum + (config.basePrice[v.type] || 0), 0);
     const infraValue = Object.values(state.infrastructure).reduce((sum, category) => {
