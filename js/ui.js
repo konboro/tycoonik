@@ -3,7 +3,7 @@ import { config, lootboxConfig } from './config.js';
 import { supabase } from './supabase.js';
 import { $, fmt, showNotification, showConfirm, getVehicleRarity, getIconHtml } from './utils.js';
 import { map } from './state.js';
-import { render, updateUI, toggleContentPanel, redrawMap } from './ui-core.js'; 
+import { render, updateUI, toggleContentPanel, redrawMap, updateMapFilterButtons } from './ui-core.js'; // Dodano updateMapFilterButtons
 import { createLootboxManager } from './lootbox-manager.js';
 
 const lootboxManager = createLootboxManager(state);
@@ -30,17 +30,41 @@ export function setupEventListeners() {
         }); 
     });
 
+    // --- NAPRAWIONA OBSŁUGA FILTRÓW W PANELU ---
     const controls = $('panel-controls');
     if(controls) {
         controls.addEventListener('click', e => { 
+            // 1. Odświeżanie
             if (e.target.id === 'refreshAll') { 
                 import('./api-server.js').then(m => {
                     m.forceRefreshVehicles().then(() => {
                         m.fetchAllVehicles().then(() => render());
                     });
                 });
-            } 
+                return;
+            }
+            
+            // 2. Kafelki Filtrów (Typy, Rzadkość, Kraj)
+            const filterBtn = e.target.closest('[data-filter-category]');
+            if (filterBtn) {
+                const category = filterBtn.dataset.filterCategory; // np. 'types'
+                const value = filterBtn.dataset.filterValue;       // np. 'plane'
+
+                if (state.filters[category].includes(value)) {
+                    // Usuń filtr (odznacz)
+                    state.filters[category] = state.filters[category].filter(item => item !== value);
+                } else {
+                    // Dodaj filtr (zaznacz)
+                    state.filters[category].push(value);
+                }
+
+                // Odśwież wszystko: Panel, Mapę i Przyciski HUD
+                render(); 
+                redrawMap();
+                updateMapFilterButtons(); 
+            }
         });
+        
         controls.addEventListener('input', e => { if (e.target.id === 'search') render(); });
     }
     
@@ -68,65 +92,38 @@ export function setupEventListeners() {
             return; 
         }
 
-        // 2. Kupno Stacji (NIERUCHOMOŚCI) - POPRAWIONE
+        // 2. Kupno Stacji (NIERUCHOMOŚCI)
         const buyStationTarget = e.target.closest('[data-buy-station]');
         if (buyStationTarget) { 
             e.stopPropagation(); 
-            console.log("Kliknięto kupno stacji:", buyStationTarget.dataset.buyStation); // Debug
-            
             (async () => {
                 const [id, priceStr] = buyStationTarget.dataset.buyStation.split('|'); 
                 const price = parseInt(priceStr); 
-                
                 if (state.wallet >= price) { 
-                    // Wywołanie RPC
                     const { data, error } = await supabase.rpc('buy_station_secure', { p_station_id: id, p_price: price });
-                    
-                    if (error) { 
-                        showNotification("Błąd serwera: " + error.message, true); 
-                        return; 
-                    }
-                    
+                    if (error) { showNotification(error.message, true); return; }
                     if (data.success) {
                         state.wallet = data.new_wallet;
-                        
-                        // Aktualizacja lokalnego stanu
                         let found = false;
-                        // Sprawdzamy we wszystkich kategoriach
-                        const cats = ['trainStations', 'tubeStations', 'busTerminals', 'riverPiers', 'cableCar'];
-                        for (const cat of cats) {
-                            if (state.infrastructure[cat] && state.infrastructure[cat][id]) {
-                                state.infrastructure[cat][id].owned = true;
+                        for (const cat in state.infrastructure) { 
+                            if(state.infrastructure[cat][id]) {
+                                state.infrastructure[cat][id].owned = true; 
                                 found = true;
-                                break; // Znaleziono i zaktualizowano
                             }
                         }
-                        
-                        if (!found) {
-                            console.warn("Nie znaleziono stacji w stanie lokalnym:", id);
-                        }
-
-                        // Odśwież UI
                         updateUI(); 
-                        render(); // Przeładuje listę (kupiona stacja zniknie z rynku)
-                        redrawMap(); // Zaktualizuje marker na mapie
+                        render(); // Ważne: Przeładowanie
                         showNotification("Zakupiono nieruchomość!");
-                        
-                    } else { 
-                        showNotification(data.message, true); 
-                    }
-                } else { 
-                    showNotification('Za mało środków!', true); 
-                } 
+                    } else { showNotification(data.message, true); }
+                } else { showNotification('Za mało środków!', true); } 
             })();
             return; 
         }
 
-        // 3. Otwieranie Skrzynek - POPRAWIONE
+        // 3. Otwieranie Skrzynek
         const openBoxTarget = e.target.closest('[data-open-box]'); 
         if (openBoxTarget) { 
             e.stopPropagation(); 
-            // Wywołujemy menedżera, który powinien obsłużyć modal
             lootboxManager.openLootbox(openBoxTarget.dataset.openBox); 
             return; 
         }
@@ -143,7 +140,6 @@ export function setupEventListeners() {
             }
         }
         
-        // 5. Obsługa Kart Pojazdów (Klik w liście)
         const vehicleItem = e.target.closest('[data-key]'); 
         if (vehicleItem && !e.target.closest('button')) { 
             state.selectedVehicleKey = vehicleItem.dataset.key; 
@@ -248,13 +244,7 @@ export function setupEventListeners() {
         });
     }
     
-    // Modals Close Handlers
-    const closePrizeBtn = $('close-prize-modal');
-    if(closePrizeBtn) closePrizeBtn.addEventListener('click', () => $('lootbox-prize-modal').style.display = 'none');
-    
-    const cancelSellBtn = $('cancel-sell-btn');
-    if(cancelSellBtn) cancelSellBtn.addEventListener('click', () => $('sell-modal').style.display = 'none');
-    
-    const closeDetailsBtn = $('close-asset-details-modal');
-    if(closeDetailsBtn) closeDetailsBtn.addEventListener('click', () => $('asset-details-modal').style.display = 'none');
+    $('close-prize-modal').addEventListener('click', () => $('lootbox-prize-modal').style.display = 'none');
+    $('cancel-sell-btn').addEventListener('click', () => $('sell-modal').style.display = 'none');
+    $('close-asset-details-modal').addEventListener('click', () => $('asset-details-modal').style.display = 'none');
 }

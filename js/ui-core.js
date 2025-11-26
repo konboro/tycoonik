@@ -110,7 +110,6 @@ export function initMapFilters() {
         if (type === 'infrastructure') {
             btn.innerHTML = '<i class="ri-community-line"></i>';
         } else {
-            // Zabezpieczenie przed błędem, jeśli ikona nie istnieje
             btn.innerHTML = getIconHtml(type, "w-6 h-6");
         }
         
@@ -132,7 +131,8 @@ export function initMapFilters() {
     updateMapFilterButtons();
 }
 
-function updateMapFilterButtons() {
+// EKSPORTUJEMY TĘ FUNKCJĘ, ABY UI.JS MÓGŁ JEJ UŻYWAĆ
+export function updateMapFilterButtons() {
     document.querySelectorAll('.map-type-filter').forEach(btn => {
         const type = btn.dataset.type;
         if (state.filters.types.includes(type)) {
@@ -155,22 +155,20 @@ function updateMapFilterButtons() {
 }
 
 function createVehicleMarkerHtml(vehicle, isOwned) {
-    const iconPath = ICONS[vehicle.type] || 'assets/unknown.png';
+    const iconPath = ICONS[vehicle.type] || '❓';
     
     if (iconPath.includes('.png') || iconPath.includes('/assets/')) {
-        // Usunięto emotkę '🛵' z onerror, aby uniknąć błędów kodowania
         return `
             <div class="w-10 h-10 flex items-center justify-center">
                 <img src="${iconPath}" 
                      class="w-8 h-8 object-contain drop-shadow-lg" 
                      style="opacity: 0; transition: opacity 0.3s;"
                      onload="this.style.opacity = 1;"
-                     onerror="this.style.display='none'; this.parentNode.innerHTML='<i class=\'ri-roadster-line text-xl\'></i>';">
+                     onerror="this.parentNode.innerHTML='🛵';">
             </div>
         `;
     }
     
-    // Fallback dla tekstowych ikon/emotek z bezpiecznym renderowaniem
     return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
 }
 
@@ -351,7 +349,8 @@ export function updateUI(inM, outM) {
     const buildingCount = Object.values(state.infrastructure).reduce((sum, category) => sum + Object.values(category).filter(item => item.owned).length, 0);
     set('owned-buildings-count', buildingCount);
     
-    // set('estimated-assets', fmt(calculateAssetValue() - state.wallet)); 
+    const estimatedAssets = Math.max(0, calculateAssetValue() - state.wallet); 
+    // set('estimated-assets', fmt(estimatedAssets)); 
     
     const earningsHistory = state.profile.earnings_history || [];
     
@@ -359,153 +358,4 @@ export function updateUI(inM, outM) {
         typeof e === 'number' && 
         isFinite(e) && 
         !isNaN(e) && 
-        e !== null && 
-        e !== undefined
-    );
-    
-    let hourlyEstimate = 0;
-    if (validEarnings.length > 0) {
-        const totalEarnings = validEarnings.reduce((sum, earning) => sum + earning, 0);
-        const avgPerMinute = totalEarnings / validEarnings.length;
-        hourlyEstimate = avgPerMinute * 60;
-    }
-    
-    const odometer = $('hourly-earnings-odometer');
-    if(odometer) {
-        const earnings = Math.max(0, Math.round(hourlyEstimate));
-        const formattedEarnings = earnings.toLocaleString('pl-PL').padStart(6, '0');
-        
-        odometer.innerHTML = '';
-        
-        for (const char of formattedEarnings) {
-            if (char !== ' ' && char !== '.' && char !== ',') {
-                const digitEl = document.createElement('span');
-                digitEl.className = 'odometer-digit';
-                digitEl.textContent = char;
-                odometer.appendChild(digitEl);
-            }
-        }
-    }
-
-    const hasUnclaimed = Object.values(state.achievements).some(a => a.unlocked && !a.claimed);
-    const dot = $('ach-notification-dot'); if(dot) dot.style.display = hasUnclaimed ? 'block' : 'none';
-    setTxt('company-logo', state.profile.logo || '🏢');
-}
-
-export function forceUpdateWallet() {
-    const walletEl = $('wallet');
-    if (walletEl) {
-        const newValue = fmt(state.wallet);
-        walletEl.textContent = newValue;
-        const originalColor = walletEl.style.color;
-        walletEl.style.color = '#ffffff'; 
-        setTimeout(() => { walletEl.style.color = originalColor; }, 300);
-        console.log(`💰 Wallet force updated: ${newValue}`);
-    }
-}
-
-// ===== 4. GŁÓWNY RENDERER =====
-
-const panelTitles = { 
-    stations: "Infrastruktura", 
-    real_estate: "Rynek Nieruchomości", 
-    store: "Sklep", 
-    fleet: "Moja Flota", 
-    market: "Giełda", 
-    lootbox: "Skrzynki", 
-    achievements: "Osiągnięcia", 
-    stats: "Statystyki", 
-    friends: "Znajomi", 
-    rankings: "Ranking", 
-    energy: "Ceny Energii", 
-    guild: "Gildia", 
-    transactions: "Historia Transakcji", 
-    company: "Personalizacja Firmy" 
-};
-
-export function render() {
-    const listContainer = $('mainList');
-    if(!listContainer) return;
-    
-    listContainer.innerHTML = '';
-    const titleEl = $('panel-title'); if(titleEl) titleEl.textContent = panelTitles[state.activeTab] || state.activeTab;
-    
-    const controls = $('panel-controls');
-    const filtersContainer = $('filters-container');
-    const showControls = ['store', 'fleet', 'stations', 'market', 'real_estate'].includes(state.activeTab);
-    if(controls) controls.style.display = showControls ? 'block' : 'none';
-
-    // === SEKCJA FILTRÓW W PANELU (Kafelki/Buttony) ===
-    if (showControls && filtersContainer) {
-        filtersContainer.innerHTML = '';
-        let filterHtml = '<div class="space-y-4">';
-
-        if (state.activeTab !== 'stations' && state.activeTab !== 'real_estate') { 
-            // 1. TYPY POJAZDÓW (Ikony w Gridzie)
-            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Typ Pojazdu</h4><div class="grid grid-cols-4 gap-2">';
-            const types = ['plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
-            types.forEach(t => {
-                const active = state.filters.types.includes(t);
-                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
-                filterHtml += `<button class="panel-filter-btn h-10 w-full ${activeClass}" data-filter-category="types" data-filter-value="${t}" title="${t}">${getIconHtml(t, "w-6 h-6")}</button>`;
-            });
-            filterHtml += '</div></div>';
-
-            // 2. RZADKOŚĆ (Tagi Flex)
-            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Rzadkość</h4><div class="flex flex-wrap gap-2">';
-            const rarities = [
-                { id: 'common', label: 'Common', color: 'border-gray-500 text-gray-400' },
-                { id: 'rare', label: 'Rare', color: 'border-blue-500 text-blue-400' },
-                { id: 'epic', label: 'Epic', color: 'border-purple-500 text-purple-400' },
-                { id: 'legendary', label: 'Legendary', color: 'border-amber-500 text-amber-400' }
-            ];
-            rarities.forEach(r => {
-                const active = state.filters.rarities.includes(r.id);
-                const baseClass = `px-3 py-1 text-xs font-bold border rounded-full transition-colors`;
-                const activeClass = active ? 'filter-btn-active border-transparent' : `bg-transparent ${r.color} hover:bg-gray-800`;
-                filterHtml += `<button class="${baseClass} ${activeClass}" data-filter-category="rarities" data-filter-value="${r.id}">${r.label}</button>`;
-            });
-            filterHtml += '</div></div>';
-
-            // 3. KRAJ (Tagi Flex)
-            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Region</h4><div class="flex flex-wrap gap-2">';
-            const countries = ['Poland', 'USA', 'Finland', 'UK', 'Greece', 'Europe'];
-            countries.forEach(c => {
-                const active = state.filters.countries.includes(c);
-                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
-                filterHtml += `<button class="px-3 py-1 text-xs font-bold rounded-md transition-colors ${activeClass}" data-filter-category="countries" data-filter-value="${c}">${c}</button>`;
-            });
-            filterHtml += '</div></div>';
-        } else {
-             filterHtml += '<div class="text-sm text-gray-400 text-center italic">Filtrowanie stacji wkrótce...</div>';
-        }
-
-        filterHtml += '</div>';
-        filtersContainer.innerHTML = filterHtml;
-    }
-    
-    switch (state.activeTab) { 
-        case 'stats': renderStats(listContainer); break; 
-        case 'achievements': renderAchievements(listContainer); break; 
-        case 'lootbox': renderLootboxTab(listContainer); break; 
-        case 'stations': renderInfrastructure(listContainer); break; 
-        case 'real_estate': renderRealEstateMarket(listContainer); break;
-        case 'energy': renderEnergyPrices(listContainer); break; 
-        case 'market': renderMarket(listContainer); break; 
-        case 'rankings': renderRankings(listContainer); break; 
-        case 'guild': renderGuildTab(listContainer); break; 
-        case 'friends': renderFriendsTab(listContainer); break; 
-        case 'transactions': renderTransactionHistory(listContainer); break; 
-        case 'company': renderCompanyTab(listContainer); break; 
-        case 'store': case 'fleet': renderVehicleList(listContainer); break; 
-        default: break; 
-    }
-    
-    const vehicleCard = $('vehicle-card');
-    if (vehicleCard) {
-        if (state.selectedVehicleKey) { renderVehicleCard(state.selectedVehicleKey); } 
-        else { vehicleCard.classList.add('translate-y-[150%]'); }
-    }
-    
-    redrawMap();
-}
+        e !== null &&
