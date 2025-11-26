@@ -8,342 +8,31 @@ import {
     renderRankings, renderStats, renderAchievements, renderEnergyPrices, 
     renderTransactionHistory, renderGuildTab, renderCompanyTab, renderFriendsTab, 
     renderStationDetails, renderVehicleCard, renderEmptyState, renderSectionTitle,
-    renderRealEstateMarket
+    renderRealEstateMarket, renderProfileTab // <--- NOWY IMPORT
 } from './renderers.js';
 
-// ===== 1. FUNKCJE POMOCNICZE UI =====
-
-export function toggleContentPanel(forceVisible) {
-    const panel = $('content-panel');
-    if (!panel) return;
-    const isHidden = panel.classList.contains('-translate-x-full');
-    const shouldShow = typeof forceVisible === 'boolean' ? forceVisible : isHidden;
-
-    panel.classList.toggle('-translate-x-full', !shouldShow);
-    panel.classList.toggle('translate-x-0', shouldShow);
-
-    if (!shouldShow) {
-        state.activeTab = null;
-        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    }
-}
-
-function getCompanyInfoPopupContent() {
-    const companyName = state.profile.companyName || 'Moja Firma';
-    const vehicleCount = Object.keys(state.owned).length;
-    let buildingCount = 0;
-    Object.values(state.infrastructure).forEach(category => {
-        Object.values(category).forEach(item => { if (item.owned) buildingCount++; });
-    });
-    const companyValue = calculateAssetValue(); 
-    return `<div style="font-family: 'Inter', sans-serif;"><h3 style="margin: 0; font-size: 16px; font-weight: bold;">${companyName}</h3><ul style="list-style: none; padding: 0; margin: 8px 0 0 0; font-size: 14px;"><li style="margin-bottom: 4px;"><strong>Pojazdy:</strong> ${vehicleCount}</li><li style="margin-bottom: 4px;"><strong>Budynki:</strong> ${buildingCount}</li><li><strong>Wartość firmy:</strong> ${fmt(companyValue)} VC</li></ul></div>`;
-}
-
-export function showPlayerLocation() {
-    if ('geolocation' in navigator) {
-        navigator.geolocation.watchPosition(position => {
-            const { latitude, longitude } = position.coords;
-            state.playerLocation = { lat: latitude, lon: longitude }; 
-            
-            const playerIcon = L.divIcon({
-                className: 'player-location-icon',
-                html: `<div class="text-3xl">${state.profile.logo || '🏢'}</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 32]
-            });
-
-            if (state.playerMarker) {
-                state.playerMarker.setLatLng([latitude, longitude]);
-            } else {
-                state.playerMarker = L.marker([latitude, longitude], { icon: playerIcon }).addTo(map);
-                state.playerMarker.bindPopup(getCompanyInfoPopupContent);
-                map.setView([latitude, longitude], 13);
-            }
-
-            if (state.proximityCircle) {
-                state.proximityCircle.setLatLng([latitude, longitude]);
-            } else {
-                state.proximityCircle = L.circle([latitude, longitude], {
-                    radius: 100000, 
-                    color: 'green',
-                    fillColor: '#22c55e',
-                    fillOpacity: 0.15,
-                    weight: 1
-                }).addTo(map);
-            }
-        }, (error) => { console.warn("Nie można uzyskać lokalizacji:", error.message); }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
-    } else { console.warn("Geolokalizacja nie jest wspierana."); }
-}
-
-export function updatePlayerMarkerIcon() {
-    if (state.playerMarker) {
-        const playerIcon = L.divIcon({
-            className: 'player-location-icon',
-            html: `<div class="text-3xl">${state.profile.logo || '🏢'}</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 32]
-        });
-        state.playerMarker.setIcon(playerIcon);
-    }
-}
-
-// ===== 2. INICJALIZACJA FILTRÓW MAPY (HUD) =====
-
-export function initMapFilters() {
-    const typesContainer = $('map-filters-types');
-    const ownershipContainer = $('map-filters-ownership');
-    
-    if (!typesContainer || !ownershipContainer) return;
-
-    const types = ['infrastructure', 'plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
-    
-    if (!state.filters.types.includes('infrastructure')) {
-        state.filters.types.push('infrastructure');
-    }
-
-    // 1. GÓRNE FILTRY (TYPY)
-    typesContainer.innerHTML = '';
-    types.forEach(type => {
-        const btn = document.createElement('button');
-        btn.className = `w-10 h-10 bg-[#121212] border border-[#333] flex items-center justify-center text-xl shadow-lg transition-all hover:bg-[#222] map-type-filter`;
-        btn.dataset.type = type;
-        btn.title = type === 'infrastructure' ? 'Pokaż/Ukryj Infrastrukturę' : `Pokaż/Ukryj: ${type}`;
-        
-        if (type === 'infrastructure') {
-            btn.innerHTML = '<i class="ri-community-line"></i>';
-        } else {
-            btn.innerHTML = getIconHtml(type, "w-6 h-6");
-        }
-        
-        btn.addEventListener('click', () => {
-            if (state.filters.types.includes(type)) { state.filters.types = state.filters.types.filter(t => t !== type); } 
-            else { state.filters.types.push(type); }
-            updateMapFilterButtons(); redrawMap(); 
-            if (state.activeTab === 'store' || state.activeTab === 'fleet') render();
-        });
-        typesContainer.appendChild(btn);
-    });
-
-    // 2. DOLNE FILTRY (OWNERSHIP + KLASTRY)
-    ownershipContainer.innerHTML = '';
-
-    const btnAll = document.createElement('button');
-    btnAll.dataset.mapView = 'all';
-    btnAll.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors';
-    btnAll.textContent = 'Wszystkie';
-    btnAll.addEventListener('click', () => { state.filters.mapView = 'all'; updateMapFilterButtons(); redrawMap(); });
-    ownershipContainer.appendChild(btnAll);
-
-    const btnFleet = document.createElement('button');
-    btnFleet.dataset.mapView = 'fleet';
-    btnFleet.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors';
-    btnFleet.textContent = 'Moja Flota';
-    btnFleet.addEventListener('click', () => { state.filters.mapView = 'fleet'; updateMapFilterButtons(); redrawMap(); });
-    ownershipContainer.appendChild(btnFleet);
-
-    const btnCluster = document.createElement('button');
-    btnCluster.dataset.action = 'toggle-clustering';
-    btnCluster.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors ml-2 border-l border-[#333]';
-    btnCluster.textContent = 'Klastry';
-    btnCluster.addEventListener('click', () => {
-        state.ui.clusteringEnabled = !state.ui.clusteringEnabled;
-        if (state.markerClusterGroup) {
-            if (state.ui.clusteringEnabled) map.addLayer(state.markerClusterGroup);
-            else map.removeLayer(state.markerClusterGroup);
-        }
-        updateMapFilterButtons();
-        redrawMap();
-    });
-    ownershipContainer.appendChild(btnCluster);
-
-    updateMapFilterButtons();
-}
-
-export function updateMapFilterButtons() {
-    // Typy
-    document.querySelectorAll('.map-type-filter').forEach(btn => {
-        const type = btn.dataset.type;
-        if (state.filters.types.includes(type)) {
-            btn.classList.add('filter-btn-active'); 
-            btn.classList.remove('opacity-50');
-        } else {
-            btn.classList.remove('filter-btn-active');
-            btn.classList.add('opacity-50');
-        }
-    });
-
-    // Ownership
-    document.querySelectorAll('[data-map-view]').forEach(btn => {
-        if (btn.dataset.mapView === state.filters.mapView) {
-            btn.classList.add('text-black', 'bg-[#eab308]', 'border-[#eab308]');
-            btn.classList.remove('text-gray-400', 'bg-[#121212]', 'border-[#333]');
-        } else {
-            btn.classList.remove('text-black', 'bg-[#eab308]', 'border-[#eab308]');
-            btn.classList.add('text-gray-400', 'bg-[#121212]', 'border-[#333]');
-        }
-    });
-
-    // Klastrowanie
-    const clusterBtn = document.querySelector('[data-action="toggle-clustering"]');
-    if (clusterBtn) {
-        if (state.ui.clusteringEnabled) {
-            clusterBtn.classList.add('text-black', 'bg-[#eab308]');
-            clusterBtn.classList.remove('text-gray-400', 'bg-[#121212]');
-        } else {
-            clusterBtn.classList.remove('text-black', 'bg-[#eab308]');
-            clusterBtn.classList.add('text-gray-400', 'bg-[#121212]');
-        }
-    }
-}
-
-function createVehicleMarkerHtml(vehicle, isOwned) {
-    const iconPath = ICONS[vehicle.type] || '❓';
-    if (iconPath.includes('.png') || iconPath.includes('/assets/')) {
-        return `<div class="w-10 h-10 flex items-center justify-center"><img src="${iconPath}" class="w-8 h-8 object-contain drop-shadow-lg" style="opacity: 0; transition: opacity 0.3s;" onload="this.style.opacity = 1;" onerror="this.parentNode.innerHTML='🛵';"></div>`;
-    }
-    return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
-}
-
-// ===== ZMODYFIKOWANA FUNKCJA REDRAW (KLASTROWANIE) =====
-export function redrawMap() {
-    const visibleKeys = new Set();
-    const useClusters = state.ui.clusteringEnabled;
-    const clusters = state.markerClusterGroup;
-    
-    Object.values(state.vehicles).forEach(vehicleMap => {
-        for (const v of vehicleMap.values()) {
-            const key = `${v.type}:${v.id}`;
-            const isOwned = !!state.owned[key];
-
-            if (state.filters.mapView === 'fleet' && !isOwned) continue;
-            const typeMatch = state.filters.types.includes(v.type);
-            const countryMatch = !v.country || state.filters.countries.includes(v.country);
-
-            let entry = state.markers.get(key);
-
-            if (typeMatch && countryMatch && v.lat != null && isFinite(v.lat) && v.lon != null && isFinite(v.lon)) {
-                visibleKeys.add(key);
-                const iconHtml = createVehicleMarkerHtml(v, isOwned);
-
-                if (!entry) {
-                    const marker = L.marker([v.lat, v.lon], { icon: createIcon(isOwned && v.isMoving) });
-                    marker.setIcon(L.divIcon({ className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`, iconSize: [40, 40], iconAnchor: [20, 20], html: iconHtml }));
-                    marker.on('click', () => { const vData = state.vehicles[v.type]?.get(v.id); if (!vData) return; state.selectedVehicleKey = key; render(); });
-                    
-                    if (useClusters && clusters) clusters.addLayer(marker); else marker.addTo(map);
-                    entry = { marker, trail: null };
-                    state.markers.set(key, entry);
-                } else {
-                    const oldLatLng = entry.marker.getLatLng();
-                    if (oldLatLng.lat !== v.lat || oldLatLng.lng !== v.lon) entry.marker.setLatLng([v.lat, v.lon]);
-                    if (clusters) {
-                        const isInCluster = clusters.hasLayer(entry.marker);
-                        if (useClusters && !isInCluster) { entry.marker.removeFrom(map); clusters.addLayer(entry.marker); } 
-                        else if (!useClusters && isInCluster) { clusters.removeLayer(entry.marker); entry.marker.addTo(map); }
-                    }
-                    const iconEl = entry.marker.getElement();
-                    if (iconEl && iconEl.innerHTML !== iconHtml) { entry.marker.setIcon(L.divIcon({ className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`, iconSize: [40, 40], iconAnchor: [20, 20], html: iconHtml })); }
-                }
-                if (isOwned && v.history && v.history.length > 1) { const latlngs = v.history.map(p => [p.lat, p.lon]); if (entry.trail) { entry.trail.setLatLngs(latlngs); } else { entry.trail = L.polyline(latlngs, { color: 'rgba(234, 179, 8, 0.5)', weight: 3 }).addTo(map); } } else if (entry.trail) { entry.trail.remove(); entry.trail = null; }
-            }
-        }
-    });
-
-    for (const [key, entry] of state.markers.entries()) {
-        if (!visibleKeys.has(key) && !key.startsWith('station:') && !key.startsWith('guildasset:')) {
-            if(entry.marker) { entry.marker.removeFrom(map); if(clusters) clusters.removeLayer(entry.marker); }
-            if(entry.trail) entry.trail.remove();
-            state.markers.delete(key);
-        }
-    }
-    
-    const showInfrastructure = state.filters.types.includes('infrastructure');
-
-    for (const stationCode in config.infrastructure) {
-        const key = `station:${stationCode}`;
-        if (!showInfrastructure) { if (state.markers.has(key)) { state.markers.get(key).marker.remove(); state.markers.delete(key); } continue; }
-
-        const station = config.infrastructure[stationCode];
-        if (station && !state.markers.has(key)) {
-            const marker = L.marker([station.lat, station.lon], { icon: L.divIcon({ className: 'leaflet-marker-icon', html: `<div class="w-16 h-16 drop-shadow-lg">${getIconHtml('station_' + station.type)}</div>`, iconSize: [64, 64], iconAnchor: [32, 32] }), pane: 'buildingsPane', zIndexOffset: 100 }).addTo(map);
-            marker.bindPopup(`<b>${station.name}</b>`).on('click', () => { state.activeTab = 'stations'; state.selectedStationId = stationCode; render(); toggleContentPanel(true); });
-            state.markers.set(key, { marker });
-        }
-    }
-
-    for (const assetKey in config.guildAssets) {
-        const key = `guildasset:${assetKey}`;
-        if (!showInfrastructure) { if (state.markers.has(key)) { state.markers.get(key).marker.remove(); state.markers.delete(key); } continue; }
-
-        const asset = config.guildAssets[assetKey];
-        let ownerGuildName = null;
-        for (const guildId in state.guild.guilds) { if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) { ownerGuildName = state.guild.guilds[guildId].name; break; } }
-        let popupContent = `<b>${asset.name}</b><br>${asset.realProduction}`;
-        if (ownerGuildName) popupContent += `<br><span class="text-blue-400">Właściciel: ${ownerGuildName}</span>`; else popupContent += `<br><span class="text-green-400">Na sprzedaż</span>`;
-
-        if (!state.markers.has(key)) {
-             const marker = L.marker([asset.lat, asset.lon], { icon: L.divIcon({ className: 'leaflet-marker-icon', html: `<div class="w-16 h-16 drop-shadow-xl">${getIconHtml('asset_power-plant')}</div>`, iconSize: [64, 64], iconAnchor: [32, 32] }), pane: 'buildingsPane', zIndexOffset: 100 }).addTo(map);
-            marker.bindPopup(popupContent).on('click', () => { state.activeTab = 'guild'; render(); toggleContentPanel(true); });
-            state.markers.set(key, { marker });
-        } else { state.markers.get(key).marker.getPopup().setContent(popupContent); }
-    }
-}
-
-// ===== 3. GŁÓWNA AKTUALIZACJA UI (KPI) =====
-
-export function updateUI(inM, outM) {
-    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
-    const setTxt = (id, val) => { const el = $(id); if (el) el.textContent = val; };
-    
-    const walletEl = $('wallet');
-    if (walletEl) {
-        const formattedWallet = fmt(state.wallet);
-        walletEl.textContent = formattedWallet;
-        if (walletEl.dataset.lastValue && walletEl.dataset.lastValue !== formattedWallet) { walletEl.style.color = '#22c55e'; setTimeout(() => { walletEl.style.color = ''; }, 500); }
-        walletEl.dataset.lastValue = formattedWallet;
-    }
-    
-    set('company-name', state.profile.companyName);
-    set('level', state.profile.level);
-    set('xp', Math.round(state.profile.xp));
-    set('xpNext', 100 + (state.profile.level-1)*50);
-    const xpBar = $('xpProgressBar'); if(xpBar) xpBar.style.width = `${(state.profile.xp / (100+(state.profile.level-1)*50))*100}%`;
-    set('owned-vehicles-count', Object.keys(state.owned).length);
-    const buildingCount = Object.values(state.infrastructure).reduce((sum, category) => sum + Object.values(category).filter(item => item.owned).length, 0);
-    set('owned-buildings-count', buildingCount);
-    
-    const earningsHistory = state.profile.earnings_history || [];
-    const validEarnings = earningsHistory.filter(e => typeof e === 'number' && isFinite(e) && !isNaN(e) && e !== null && e !== undefined);
-    let hourlyEstimate = 0;
-    if (validEarnings.length > 0) { const totalEarnings = validEarnings.reduce((sum, earning) => sum + earning, 0); const avgPerMinute = totalEarnings / validEarnings.length; hourlyEstimate = avgPerMinute * 60; }
-    
-    const odometer = $('hourly-earnings-odometer');
-    if(odometer) {
-        const earnings = Math.max(0, Math.round(hourlyEstimate));
-        const formattedEarnings = earnings.toLocaleString('pl-PL').padStart(6, '0');
-        odometer.innerHTML = '';
-        for (const char of formattedEarnings) { if (char !== ' ' && char !== '.' && char !== ',') { const digitEl = document.createElement('span'); digitEl.className = 'odometer-digit'; digitEl.textContent = char; odometer.appendChild(digitEl); } }
-    }
-
-    const hasUnclaimed = Object.values(state.achievements).some(a => a.unlocked && !a.claimed);
-    const dot = $('ach-notification-dot'); if(dot) dot.style.display = hasUnclaimed ? 'block' : 'none';
-    setTxt('company-logo', state.profile.logo || '🏢');
-}
-
-export function forceUpdateWallet() {
-    const walletEl = $('wallet');
-    if (walletEl) {
-        const newValue = fmt(state.wallet);
-        walletEl.textContent = newValue;
-        const originalColor = walletEl.style.color;
-        walletEl.style.color = '#ffffff'; 
-        setTimeout(() => { walletEl.style.color = originalColor; }, 300);
-    }
-}
+// ... (Funkcje pomocnicze bez zmian) ...
+// ... (initMapFilters, updateMapFilterButtons, redrawMap, updateUI, forceUpdateWallet bez zmian) ...
 
 // ===== 4. GŁÓWNY RENDERER =====
 
-const panelTitles = { stations: "Infrastruktura", real_estate: "Rynek Nieruchomości", store: "Sklep", fleet: "Moja Flota", market: "Giełda", lootbox: "Skrzynki", achievements: "Osiągnięcia", stats: "Statystyki", friends: "Znajomi", rankings: "Ranking", energy: "Ceny Energii", guild: "Gildia", transactions: "Historia Transakcji", company: "Personalizacja Firmy" };
+const panelTitles = { 
+    stations: "Infrastruktura", 
+    real_estate: "Rynek Nieruchomości", 
+    store: "Sklep", 
+    fleet: "Moja Flota", 
+    market: "Giełda", 
+    lootbox: "Skrzynki", 
+    achievements: "Osiągnięcia", 
+    stats: "Statystyki", 
+    friends: "Znajomi", 
+    rankings: "Ranking", 
+    energy: "Ceny Energii", 
+    guild: "Gildia", 
+    transactions: "Historia Transakcji", 
+    company: "Personalizacja Firmy",
+    profile: "Profil Operatora" // <--- NOWY TYTUŁ
+};
 
 export function render() {
     const listContainer = $('mainList');
@@ -357,28 +46,58 @@ export function render() {
     const showControls = ['store', 'fleet', 'stations', 'market', 'real_estate'].includes(state.activeTab);
     if(controls) controls.style.display = showControls ? 'block' : 'none';
 
+    // ... (Logika filtrów bez zmian) ...
+    // ... (Sekcja filtrów kafelkowych wklejona z poprzednich wersji) ...
     if (showControls && filtersContainer) {
         filtersContainer.innerHTML = '';
         let filterHtml = '<div class="space-y-4">';
+
         if (state.activeTab !== 'stations' && state.activeTab !== 'real_estate') { 
-            filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Typ Pojazdu</h4><div class="grid grid-cols-4 gap-2">';
+            // ... (Filtry pojazdów) ...
+             filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Typ Pojazdu</h4><div class="grid grid-cols-4 gap-2">';
             const types = ['plane', 'train', 'bus', 'tube', 'tram', 'river-bus', 'scooter', 'bike'];
-            types.forEach(t => { const active = state.filters.types.includes(t); const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white'; filterHtml += `<button class="panel-filter-btn h-10 w-full ${activeClass}" data-filter-category="types" data-filter-value="${t}" title="${t}">${getIconHtml(t, "w-6 h-6")}</button>`; });
+            types.forEach(t => {
+                const active = state.filters.types.includes(t);
+                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
+                filterHtml += `<button class="panel-filter-btn h-10 w-full ${activeClass}" data-filter-category="types" data-filter-value="${t}" title="${t}">${getIconHtml(t, "w-6 h-6")}</button>`;
+            });
             filterHtml += '</div></div>';
+
+            // 2. RZADKOŚĆ
             filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Rzadkość</h4><div class="flex flex-wrap gap-2">';
-            const rarities = [ { id: 'common', label: 'Common', color: 'border-gray-500 text-gray-400' }, { id: 'rare', label: 'Rare', color: 'border-blue-500 text-blue-400' }, { id: 'epic', label: 'Epic', color: 'border-purple-500 text-purple-400' }, { id: 'legendary', label: 'Legendary', color: 'border-amber-500 text-amber-400' } ];
-            rarities.forEach(r => { const active = state.filters.rarities.includes(r.id); const baseClass = `px-3 py-1 text-xs font-bold border rounded-full transition-colors`; const activeClass = active ? 'filter-btn-active border-transparent' : `bg-transparent ${r.color} hover:bg-gray-800`; filterHtml += `<button class="${baseClass} ${activeClass}" data-filter-category="rarities" data-filter-value="${r.id}">${r.label}</button>`; });
+            const rarities = [
+                { id: 'common', label: 'Common', color: 'border-gray-500 text-gray-400' },
+                { id: 'rare', label: 'Rare', color: 'border-blue-500 text-blue-400' },
+                { id: 'epic', label: 'Epic', color: 'border-purple-500 text-purple-400' },
+                { id: 'legendary', label: 'Legendary', color: 'border-amber-500 text-amber-400' }
+            ];
+            rarities.forEach(r => {
+                const active = state.filters.rarities.includes(r.id);
+                const baseClass = `px-3 py-1 text-xs font-bold border rounded-full transition-colors`;
+                const activeClass = active ? 'filter-btn-active border-transparent' : `bg-transparent ${r.color} hover:bg-gray-800`;
+                filterHtml += `<button class="${baseClass} ${activeClass}" data-filter-category="rarities" data-filter-value="${r.id}">${r.label}</button>`;
+            });
             filterHtml += '</div></div>';
+
+            // 3. KRAJ
             filterHtml += '<div><h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Region</h4><div class="flex flex-wrap gap-2">';
             const countries = ['Poland', 'USA', 'Finland', 'UK', 'Greece', 'Europe'];
-            countries.forEach(c => { const active = state.filters.countries.includes(c); const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white'; filterHtml += `<button class="px-3 py-1 text-xs font-bold rounded-md transition-colors ${activeClass}" data-filter-category="countries" data-filter-value="${c}">${c}</button>`; });
+            countries.forEach(c => {
+                const active = state.filters.countries.includes(c);
+                const activeClass = active ? 'filter-btn-active' : 'bg-gray-800 border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white';
+                filterHtml += `<button class="px-3 py-1 text-xs font-bold rounded-md transition-colors ${activeClass}" data-filter-category="countries" data-filter-value="${c}">${c}</button>`;
+            });
             filterHtml += '</div></div>';
-        } else { filterHtml += '<div class="text-sm text-gray-400 text-center italic">Filtrowanie stacji wkrótce...</div>'; }
+        } else {
+             filterHtml += '<div class="text-sm text-gray-400 text-center italic">Filtrowanie stacji wkrótce...</div>';
+        }
+
         filterHtml += '</div>';
         filtersContainer.innerHTML = filterHtml;
     }
     
     switch (state.activeTab) { 
+        case 'profile': renderProfileTab(listContainer); break; // <--- DODANO OBSŁUGĘ PROFILU
         case 'stats': renderStats(listContainer); break; 
         case 'achievements': renderAchievements(listContainer); break; 
         case 'lootbox': renderLootboxTab(listContainer); break; 
@@ -401,6 +120,7 @@ export function render() {
         else { vehicleCard.classList.add('translate-y-[150%]'); }
     }
     
+    // Aktualizacja filtrów HUD
     updateMapFilterButtons();
     redrawMap();
 }

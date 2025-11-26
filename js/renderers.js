@@ -2,6 +2,7 @@ import { state, achievementsList } from './state.js';
 import { config, lootboxConfig } from './config.js';
 import { $, fmt, getIconHtml, getVehicleRarity, ICONS } from './utils.js';
 import { map } from './state.js';
+import { supabase } from './supabase.js'; // Potrzebne do pobrania emaila
 
 // ===== RENDERERS DLA INDUSTRIAL THEME =====
 
@@ -140,7 +141,6 @@ export function renderVehicleList(container) {
     });
 }
 
-// 1. POSIADANA INFRASTRUKTURA (ZAWSZE ROZWINIĘTE)
 export function renderInfrastructure(container) {
     let count = 0;
     for (const id in config.infrastructure) {
@@ -171,7 +171,6 @@ export function renderInfrastructure(container) {
             </div>
         `;
         
-        // AUTOMATYCZNE RENDEROWANIE SZCZEGÓŁÓW
         const det = document.createElement('div'); 
         det.className = 'bg-black border border-[#333] text-xs font-mono animate-fade-in p-2'; 
         renderStationDetails(id, det); 
@@ -183,7 +182,6 @@ export function renderInfrastructure(container) {
     if (count === 0) renderEmptyState(container, "BRAK ZAKUPIONEJ INFRASTRUKTURY");
 }
 
-// 2. RYNEK NIERUCHOMOŚCI (DO KUPNA)
 export function renderRealEstateMarket(container) {
     let count = 0;
     for (const id in config.infrastructure) {
@@ -217,7 +215,6 @@ export function renderRealEstateMarket(container) {
     if (count === 0) renderEmptyState(container, "WSZYSTKIE NIERUCHOMOŚCI ZAKUPIONE");
 }
 
-// 3. SZCZEGÓŁY STACJI (ROZKŁAD JAZDY)
 export function renderStationDetails(id, container) {
     const stationConfig = config.infrastructure[id];
     const { type } = stationConfig;
@@ -491,6 +488,69 @@ export function renderAchievements(container) {
         list.appendChild(el);
     }
     container.appendChild(list);
+}
+
+// ===== NOWA FUNKCJA: PROFIL =====
+export function renderProfileTab(container) {
+    (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const email = user ? user.email : 'Nieznany';
+        const id = user ? user.id : '---';
+        
+        container.innerHTML = `
+            <div class="p-4 space-y-6">
+                <div class="bg-[#1a1a1a] border border-[#333] p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Konto Operatora</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <div class="text-[10px] text-gray-600 uppercase font-bold">Identyfikator</div>
+                            <div class="text-sm text-white font-mono">${email}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-600 uppercase font-bold">ID Systemowe</div>
+                            <div class="text-[10px] text-gray-400 font-mono">${id}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-[#1a1a1a] border border-[#333] p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Finanse i Subskrypcje</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-sm text-white"><i class="ri-bank-card-fill mr-2"></i> Metoda Płatności</span>
+                        <span class="text-xs text-gray-400 font-mono">**** 4242</span>
+                    </div>
+                    <button class="w-full bg-[#222] hover:bg-[#eab308] hover:text-black text-white text-xs font-bold py-2 uppercase transition border border-[#333]">Zarządzaj Płatnościami</button>
+                </div>
+                
+                <div class="bg-[#1a1a1a] border border-[#333] p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Ustawienia Systemowe</h3>
+                    <div class="flex justify-between items-center py-2 border-b border-[#333]">
+                        <span class="text-sm text-white">Powiadomienia</span>
+                        <div class="w-8 h-4 bg-green-900 rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-green-500 rounded-full absolute right-0"></div></div>
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-white">Dźwięk</span>
+                        <div class="w-8 h-4 bg-gray-700 rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-gray-400 rounded-full absolute left-0"></div></div>
+                    </div>
+                </div>
+
+                <button id="logout-btn-profile" class="w-full bg-red-900/20 hover:bg-red-900 text-red-500 hover:text-white border border-red-900 text-sm font-bold py-3 uppercase transition">
+                    <i class="ri-shut-down-line mr-2"></i> Wyloguj z Systemu
+                </button>
+            </div>
+        `;
+        
+        // Attach listener immediately after rendering
+        setTimeout(() => {
+            const logoutBtn = document.getElementById('logout-btn-profile');
+            if(logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    await supabase.auth.signOut();
+                    location.reload();
+                });
+            }
+        }, 100);
+    })();
 }
 
 // Alias dla kompatybilności

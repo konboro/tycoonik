@@ -13,7 +13,7 @@ export function setupEventListeners() {
     document.querySelectorAll('[data-nav-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.navTab;
-            if(tab === 'profile') return;
+            // USUŃ LINIĘ: if(tab === 'profile') return; 
             state.activeTab = tab;
             render();
             toggleContentPanel(true);
