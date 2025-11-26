@@ -1,4 +1,3 @@
-// ... (importy bez zmian) ...
 import { state } from './state.js';
 import { config } from './config.js';
 import { map } from './state.js';
@@ -12,8 +11,7 @@ import {
     renderRealEstateMarket
 } from './renderers.js';
 
-// ... (funkcje toggleContentPanel, getCompanyInfoPopupContent, showPlayerLocation, updatePlayerMarkerIcon, initMapFilters, updateMapFilterButtons, createVehicleMarkerHtml BEZ ZMIAN) ...
-// (Wklejam tylko zmienioną funkcję redrawMap, resztę pliku zachowaj taką jaką miałeś w poprzednich krokach, bo jest poprawna)
+// ===== 1. FUNKCJE POMOCNICZE UI =====
 
 export function toggleContentPanel(forceVisible) {
     const panel = $('content-panel');
@@ -89,6 +87,7 @@ export function updatePlayerMarkerIcon() {
     }
 }
 
+// ===== NOWA FUNKCJA: Inicjalizacja filtrów na mapie =====
 export function initMapFilters() {
     const typesContainer = $('map-filters-types');
     const ownershipContainer = $('map-filters-ownership');
@@ -101,6 +100,7 @@ export function initMapFilters() {
         state.filters.types.push('infrastructure');
     }
 
+    // 1. GÓRNE FILTRY (TYPY)
     typesContainer.innerHTML = '';
     types.forEach(type => {
         const btn = document.createElement('button');
@@ -123,16 +123,54 @@ export function initMapFilters() {
         typesContainer.appendChild(btn);
     });
 
-    ownershipContainer.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            state.filters.mapView = e.target.dataset.mapView;
-            updateMapFilterButtons(); redrawMap();
-        });
+    // 2. DOLNE FILTRY (OWNERSHIP + KLASTRY)
+    // Czyścimy tylko listenery, ale zachowujemy strukturę HTML jeśli istnieje, lub dodajemy przyciski dynamicznie
+    // Dla bezpieczeństwa - wyczyścimy i dodamy od nowa w JS
+    ownershipContainer.innerHTML = '';
+
+    // Przycisk "Wszystkie"
+    const btnAll = document.createElement('button');
+    btnAll.dataset.mapView = 'all';
+    btnAll.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors';
+    btnAll.textContent = 'Wszystkie';
+    btnAll.addEventListener('click', () => { state.filters.mapView = 'all'; updateMapFilterButtons(); redrawMap(); });
+    ownershipContainer.appendChild(btnAll);
+
+    // Przycisk "Moja Flota"
+    const btnFleet = document.createElement('button');
+    btnFleet.dataset.mapView = 'fleet';
+    btnFleet.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors';
+    btnFleet.textContent = 'Moja Flota';
+    btnFleet.addEventListener('click', () => { state.filters.mapView = 'fleet'; updateMapFilterButtons(); redrawMap(); });
+    ownershipContainer.appendChild(btnFleet);
+
+    // Przycisk "Klastry" (NOWOŚĆ)
+    const btnCluster = document.createElement('button');
+    btnCluster.dataset.action = 'toggle-clustering';
+    btnCluster.className = 'px-4 py-1 text-[10px] font-bold font-header uppercase transition-colors ml-2 border-l border-[#333]';
+    btnCluster.textContent = 'Klastry';
+    btnCluster.addEventListener('click', () => {
+        state.ui.clusteringEnabled = !state.ui.clusteringEnabled;
+        
+        // Obsługa warstwy klastra w Leaflet
+        if (state.markerClusterGroup) {
+            if (state.ui.clusteringEnabled) {
+                map.addLayer(state.markerClusterGroup);
+            } else {
+                map.removeLayer(state.markerClusterGroup);
+            }
+        }
+        
+        updateMapFilterButtons();
+        redrawMap();
     });
+    ownershipContainer.appendChild(btnCluster);
+
     updateMapFilterButtons();
 }
 
 export function updateMapFilterButtons() {
+    // Typy
     document.querySelectorAll('.map-type-filter').forEach(btn => {
         const type = btn.dataset.type;
         if (state.filters.types.includes(type)) {
@@ -143,6 +181,8 @@ export function updateMapFilterButtons() {
             btn.classList.add('opacity-50');
         }
     });
+
+    // Ownership (Wszystkie/Moja Flota)
     document.querySelectorAll('[data-map-view]').forEach(btn => {
         if (btn.dataset.mapView === state.filters.mapView) {
             btn.classList.add('text-black', 'bg-[#eab308]', 'border-[#eab308]');
@@ -152,6 +192,18 @@ export function updateMapFilterButtons() {
             btn.classList.add('text-gray-400', 'bg-[#121212]', 'border-[#333]');
         }
     });
+
+    // Klastrowanie (Toggle)
+    const clusterBtn = document.querySelector('[data-action="toggle-clustering"]');
+    if (clusterBtn) {
+        if (state.ui.clusteringEnabled) {
+            clusterBtn.classList.add('text-black', 'bg-[#eab308]');
+            clusterBtn.classList.remove('text-gray-400', 'bg-[#121212]');
+        } else {
+            clusterBtn.classList.remove('text-black', 'bg-[#eab308]');
+            clusterBtn.classList.add('text-gray-400', 'bg-[#121212]');
+        }
+    }
 }
 
 function createVehicleMarkerHtml(vehicle, isOwned) {
@@ -168,24 +220,23 @@ function createVehicleMarkerHtml(vehicle, isOwned) {
             </div>
         `;
     }
+    
     return `<div class="w-10 h-10 flex items-center justify-center text-2xl">${iconPath}</div>`;
 }
 
-// ===== ZMODYFIKOWANA FUNKCJA REDRAW (KLASTROWANIE) =====
+// ===== ZAKTUALIZOWANA FUNKCJA: redrawMap =====
 export function redrawMap() {
     const visibleKeys = new Set();
+    const useClusters = state.ui.clusteringEnabled;
     const clusters = state.markerClusterGroup;
-
-    if (!clusters) return; // Jeśli biblioteka się nie załadowała
-
-    // 1. Rysowanie Pojazdów
+    
     Object.values(state.vehicles).forEach(vehicleMap => {
         for (const v of vehicleMap.values()) {
             const key = `${v.type}:${v.id}`;
             const isOwned = !!state.owned[key];
 
-            // Filtry
             if (state.filters.mapView === 'fleet' && !isOwned) continue;
+
             const typeMatch = state.filters.types.includes(v.type);
             const countryMatch = !v.country || state.filters.countries.includes(v.country);
 
@@ -197,20 +248,15 @@ export function redrawMap() {
                 const iconHtml = createVehicleMarkerHtml(v, isOwned);
 
                 if (!entry) {
+                    // Create Marker
                     const marker = L.marker([v.lat, v.lon], { icon: createIcon(isOwned && v.isMoving) });
                     
-                    // Dodajemy do klastra, nie bezpośrednio do mapy!
-                    clusters.addLayer(marker);
-                    
-                    // Hack: Musimy wstrzyknąć HTML do ikony po dodaniu do mapy (Leaflet DivIcon quirk)
-                    // Ale markerCluster to utrudnia. Zamiast tego używamy standardowego DivIcon z HTML w środku.
-                    // Powyższe createIcon zwraca DivIcon z klasami.
-                    // Jeśli używamy klastrów, lepiej zdefiniować icon z HTML od razu w createIcon lub tutaj:
+                    // Manualnie ustawiamy HTML ikony (hack na ograniczenia L.divIcon w klastrach)
                     marker.setIcon(L.divIcon({
                         className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`,
                         iconSize: [40, 40],
                         iconAnchor: [20, 20],
-                        html: iconHtml // Tutaj wstawiamy HTML bezpośrednio
+                        html: iconHtml
                     }));
 
                     marker.on('click', () => { 
@@ -220,29 +266,52 @@ export function redrawMap() {
                         render(); 
                     });
                     
+                    // Dodaj do odpowiedniej warstwy
+                    if (useClusters && clusters) {
+                        clusters.addLayer(marker);
+                    } else {
+                        marker.addTo(map);
+                    }
+
                     entry = { marker, trail: null };
                     state.markers.set(key, entry);
                 } else {
-                    // Aktualizacja pozycji
+                    // Update Position
                     const oldLatLng = entry.marker.getLatLng();
                     if (oldLatLng.lat !== v.lat || oldLatLng.lng !== v.lon) {
                         entry.marker.setLatLng([v.lat, v.lon]);
                     }
                     
-                    // Aktualizacja ikony (ruch)
-                    const isMoving = isOwned && v.isMoving;
-                    const currentIcon = entry.marker.getIcon();
-                    // Prostym sposobem jest podmiana HTML w opcjach ikony i setIcon
-                    // To trochę kosztowne, ale przy klastrach konieczne
-                    entry.marker.setIcon(L.divIcon({
-                        className: `leaflet-marker-icon ${isMoving ? 'is-moving' : ''} bg-transparent border-none`,
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 20],
-                        html: iconHtml
-                    }));
+                    // Obsługa przełączania klastrowania (Dynamic Switching)
+                    // Sprawdzamy, czy marker jest tam gdzie powinien być
+                    if (clusters) {
+                        const isInCluster = clusters.hasLayer(entry.marker);
+                        
+                        if (useClusters && !isInCluster) {
+                            // Powinien być w klastrze, ale nie jest -> przenieś
+                            entry.marker.removeFrom(map);
+                            clusters.addLayer(entry.marker);
+                        } else if (!useClusters && isInCluster) {
+                            // Nie powinien być w klastrze -> przenieś na mapę
+                            clusters.removeLayer(entry.marker);
+                            entry.marker.addTo(map);
+                        }
+                    }
+                    
+                    // Update Icon (np. animacja ruchu)
+                    const iconEl = entry.marker.getElement();
+                    if (iconEl && iconEl.innerHTML !== iconHtml) {
+                         // Jeśli używamy klastrów, refreshIcon może być potrzebny
+                         entry.marker.setIcon(L.divIcon({
+                            className: `leaflet-marker-icon ${isOwned && v.isMoving ? 'is-moving' : ''} bg-transparent border-none`,
+                            iconSize: [40, 40],
+                            iconAnchor: [20, 20],
+                            html: iconHtml
+                        }));
+                    }
                 }
                 
-                // Trail (rysowany bezpośrednio na mapie, nie w klastrze)
+                // Trail
                 if (isOwned && v.history && v.history.length > 1) { 
                     const latlngs = v.history.map(p => [p.lat, p.lon]); 
                     if (entry.trail) { entry.trail.setLatLngs(latlngs); } 
@@ -255,18 +324,17 @@ export function redrawMap() {
         }
     });
 
-    // Usuwanie markerów
     for (const [key, entry] of state.markers.entries()) {
-        if (!visibleKeys.has(key)) {
-            // Usuwamy z klastra!
-            if(entry.marker) clusters.removeLayer(entry.marker);
+        if (!visibleKeys.has(key) && !key.startsWith('station:') && !key.startsWith('guildasset:')) {
+            if(entry.marker) {
+                entry.marker.removeFrom(map);
+                if(clusters) clusters.removeLayer(entry.marker);
+            }
             if(entry.trail) entry.trail.remove();
             state.markers.delete(key);
         }
     }
     
-    // Infrastruktura (nie klastrujemy jej, bo to budynki stałe, albo dodajemy do innej grupy)
-    // Dla uproszczenia: dodajemy stacje do mapy bezpośrednio, żeby zawsze były widoczne i nie znikały w klastrach pojazdów
     const showInfrastructure = state.filters.types.includes('infrastructure');
 
     for (const stationCode in config.infrastructure) {
@@ -281,7 +349,6 @@ export function redrawMap() {
         }
 
         const station = config.infrastructure[stationCode];
-        // Sprawdzamy czy marker już istnieje w GLOBALNYM rejestrze markerów
         if (station && !state.markers.has(key)) {
             const marker = L.marker([station.lat, station.lon], { 
                 icon: L.divIcon({ 
@@ -292,8 +359,7 @@ export function redrawMap() {
                 }),
                 pane: 'buildingsPane', 
                 zIndexOffset: 100
-            }).addTo(map); // Bezpośrednio do mapy!
-            
+            }).addTo(map);
             marker.bindPopup(`<b>${station.name}</b>`).on('click', () => { 
                 state.activeTab = 'stations';
                 state.selectedStationId = stationCode;
@@ -301,13 +367,9 @@ export function redrawMap() {
                 toggleContentPanel(true);
             });
             state.markers.set(key, { marker });
-            visibleKeys.add(key); // Dodajemy, żeby pętla czyszcząca go nie usunęła
-        } else if (state.markers.has(key)) {
-             visibleKeys.add(key);
         }
     }
-    
-    // Budynki Gildii (analogicznie)
+
     for (const assetKey in config.guildAssets) {
         const key = `guildasset:${assetKey}`;
 
@@ -320,6 +382,17 @@ export function redrawMap() {
         }
 
         const asset = config.guildAssets[assetKey];
+        let ownerGuildName = null;
+        for (const guildId in state.guild.guilds) {
+            if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) {
+                ownerGuildName = state.guild.guilds[guildId].name;
+                break;
+            }
+        }
+        let popupContent = `<b>${asset.name}</b><br>${asset.realProduction}`;
+        if (ownerGuildName) popupContent += `<br><span class="text-blue-400">Właściciel: ${ownerGuildName}</span>`;
+        else popupContent += `<br><span class="text-green-400">Na sprzedaż</span>`;
+
         if (!state.markers.has(key)) {
              const marker = L.marker([asset.lat, asset.lon], {
                  icon: L.divIcon({ 
@@ -331,32 +404,19 @@ export function redrawMap() {
                  pane: 'buildingsPane', 
                  zIndexOffset: 100
             }).addTo(map);
-            
-            // Popup logic...
-            let ownerGuildName = null;
-            for (const guildId in state.guild.guilds) {
-                if (state.guild.guilds[guildId].ownedAssets && state.guild.guilds[guildId].ownedAssets[assetKey]) {
-                    ownerGuildName = state.guild.guilds[guildId].name;
-                    break;
-                }
-            }
-            let popupContent = `<b>${asset.name}</b><br>${asset.realProduction}`;
-            if (ownerGuildName) popupContent += `<br><span class="text-blue-400">Właściciel: ${ownerGuildName}</span>`;
-            else popupContent += `<br><span class="text-green-400">Na sprzedaż</span>`;
-            
             marker.bindPopup(popupContent).on('click', () => { 
                 state.activeTab = 'guild';
                 render();
                 toggleContentPanel(true);
             });
-            
             state.markers.set(key, { marker });
-            visibleKeys.add(key);
         } else {
-            visibleKeys.add(key);
+            state.markers.get(key).marker.getPopup().setContent(popupContent);
         }
     }
 }
+
+// ===== 3. GŁÓWNA AKTUALIZACJA UI (KPI) =====
 
 export function updateUI(inM, outM) {
     const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
@@ -539,7 +599,7 @@ export function render() {
         else { vehicleCard.classList.add('translate-y-[150%]'); }
     }
     
-    // Aktualizacja filtrów HUD i mapy
+    // Aktualizacja filtrów HUD
     updateMapFilterButtons();
     redrawMap();
 }

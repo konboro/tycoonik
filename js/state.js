@@ -47,7 +47,8 @@ export const state = {
   markerClusterGroup: null, 
 
   ui: {
-      statsTimeframe: '24h'
+      statsTimeframe: '24h',
+      clusteringEnabled: true // DOMYŚLNIE WŁĄCZONE
   },
   
   missions: { available: [], active: [], completed: 0 },
@@ -58,12 +59,8 @@ initializeAchievements(state);
 export const achievementManager = new AchievementManager(state);
 export const achievementsList = ACHIEVEMENTS;
 export const lootboxManager = createLootboxManager(state);
-
-// --- NAPRAWIONA INICJALIZACJA MAPY Z maxZoom ---
-export const map = (typeof L !== 'undefined') ? L.map('map', { 
-    zoomControl: true,
-    maxZoom: 22 // KLUCZOWE DLA MARKER CLUSTER!
-}).setView([52.23, 21.01], 6) : null;
+// NAPRAWA: Dodano maxZoom, aby klastry działały poprawnie
+export const map = (typeof L !== 'undefined') ? L.map('map', { zoomControl: true, maxZoom: 22 }).setView([52.23, 21.01], 6) : null;
 
 // Inicjalizacja klastrowania
 if (map && typeof L.markerClusterGroup !== 'undefined') {
@@ -73,17 +70,12 @@ if (map && typeof L.markerClusterGroup !== 'undefined') {
         spiderfyOnMaxZoom: true,
         disableClusteringAtZoom: 16,
         
-        // Stylizacja klastra (industrial)
         iconCreateFunction: function(cluster) {
             var childCount = cluster.getChildCount();
             var c = ' marker-cluster-';
-            if (childCount < 10) {
-                c += 'small';
-            } else if (childCount < 100) {
-                c += 'medium';
-            } else {
-                c += 'large';
-            }
+            if (childCount < 10) { c += 'small'; } 
+            else if (childCount < 100) { c += 'medium'; } 
+            else { c += 'large'; }
 
             return new L.DivIcon({ 
                 html: '<div><span>' + childCount + '</span></div>', 
@@ -92,7 +84,10 @@ if (map && typeof L.markerClusterGroup !== 'undefined') {
             });
         }
     });
-    map.addLayer(state.markerClusterGroup);
+    // Nie dodajemy od razu do mapy, zrobi to ui-core.js w zależności od ustawień
+    if (state.ui.clusteringEnabled) {
+        map.addLayer(state.markerClusterGroup);
+    }
 }
 
 export function logTransaction(amount, description) { 
