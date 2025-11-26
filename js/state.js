@@ -12,8 +12,8 @@ export const state = {
       globalFuels: {
           'Diesel': { price: 1.45, trend: 'stable' },
           'Benzyna': { price: 1.62, trend: 'up' },
-          'Aviation': { price: 2.85, trend: 'down' }, 
-          'Electricity': { price: 0.25, trend: 'stable' } 
+          'Aviation': { price: 2.85, trend: 'down' },
+          'Electricity': { price: 0.25, trend: 'stable' }
       }
   },
   marketListings: [],
@@ -43,9 +43,11 @@ export const state = {
   playerLocation: null,
   proximityCircle: null,
   
-  // UI STATE - NOWOŚĆ
+  // CLUSTERING
+  markerClusterGroup: null, // Tutaj będzie instancja L.markerClusterGroup
+
   ui: {
-      statsTimeframe: '24h' // Domyślny widok: 1h, 24h, 7d
+      statsTimeframe: '24h'
   },
   
   missions: { available: [], active: [], completed: 0 },
@@ -57,6 +59,36 @@ export const achievementManager = new AchievementManager(state);
 export const achievementsList = ACHIEVEMENTS;
 export const lootboxManager = createLootboxManager(state);
 export const map = (typeof L !== 'undefined') ? L.map('map', { zoomControl: true }).setView([52.23, 21.01], 6) : null;
+
+// Inicjalizacja klastrowania PO utworzeniu mapy
+if (map && typeof L.markerClusterGroup !== 'undefined') {
+    state.markerClusterGroup = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        disableClusteringAtZoom: 16, // Powyżej tego zoomu klastry znikają (widzimy pojedyncze pojazdy)
+        
+        // Stylizacja klastra (opcjonalne, ale pasuje do industrial theme)
+        iconCreateFunction: function(cluster) {
+            var childCount = cluster.getChildCount();
+            var c = ' marker-cluster-';
+            if (childCount < 10) {
+                c += 'small';
+            } else if (childCount < 100) {
+                c += 'medium';
+            } else {
+                c += 'large';
+            }
+
+            return new L.DivIcon({ 
+                html: '<div><span>' + childCount + '</span></div>', 
+                className: 'marker-cluster' + c, 
+                iconSize: new L.Point(40, 40) 
+            });
+        }
+    });
+    map.addLayer(state.markerClusterGroup);
+}
 
 export function logTransaction(amount, description) { 
     if (!state.profile.transaction_history) state.profile.transaction_history = []; 
